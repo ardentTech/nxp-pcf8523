@@ -2,6 +2,14 @@
 name = "nxp-pcf8523"
 version = "0.1.0"
 edition = "2024"
+authors = ["Jonathan D. Baker <jonathan@ardent.tech>"]
+description = "A driver for the NXP PCF8523 module."
+keywords = ["embedded", "embedded-hal-driver", "rtc"]
+categories = ["embedded", "no-std"]
+repository = "https://github.com/ardentTech/nxp-pcf8523"
+license = "MIT OR Apache-2.0"
+exclude = ["CHANGELOG.md"]
+readme = "README.md"
 
 [dependencies]
 embedded-hal = "1.0.0"
