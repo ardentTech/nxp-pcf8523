@@ -8,7 +8,7 @@ keywords = ["embedded", "embedded-hal-driver", "rtc"]
 categories = ["embedded", "no-std"]
 repository = "https://github.com/ardentTech/nxp-pcf8523"
 license = "MIT OR Apache-2.0"
-exclude = ["CHANGELOG.md"]
+exclude = ["CHANGELOG.md", "tests/*"]
 readme = "README.md"
 
 [dependencies]
