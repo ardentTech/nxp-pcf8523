@@ -9,7 +9,6 @@ pub struct Pcf8523<I2C> {
     i2c: I2C
 }
 
-// TODO CONTROL_1 bit 0
 impl<I2C: I2c> Pcf8523<I2C> {
     pub fn new(i2c: I2C) -> Self {
         Self { i2c }
@@ -78,10 +77,9 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(())
     }
 
-    // TODO test
     pub fn freeze_rtc_time_circuits(&mut self, freeze: bool) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut val = self.read_reg(PCF8523_CONTROL_1)?;
-        set_bits(&mut val, 1, 5, 0b10_0000);
+        set_bits(&mut val, freeze as u8, 5, 0b10_0000);
         self.write_reg(PCF8523_CONTROL_1, val)?;
         Ok(())
     }
@@ -90,9 +88,13 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok((self.read_reg(PCF8523_CONTROL_3)? >> 2) & 0b1 == 1)
     }
 
-    // fn get_clock_integrity_guaranteed(&mut self) -> Result<bool, Pcf8523Error<I2C::Error>> {
-    //     TODO 8.6.1
-    // }
+    pub fn get_clock_integrity_guaranteed(&mut self) -> Result<bool, Pcf8523Error<I2C::Error>> {
+        Ok(get_bits(self.read_reg(PCF8523_SECONDS)?, 1, 7) == 0)
+    }
+
+    pub fn get_correction_interrupt_generated(&mut self) -> Result<bool, Pcf8523Error<I2C::Error>> {
+        Ok(get_bits(self.read_reg(PCF8523_CONTROL_1)?, 1, 0) == 1)
+    }
 
     pub fn get_day_of_month(&mut self) -> Result<u8, Pcf8523Error<I2C::Error>> {
         Ok(decode_bcd(self.read_reg(PCF8523_DAYS)? & 0b11_1111))
@@ -115,7 +117,6 @@ impl<I2C: I2c> Pcf8523<I2C> {
         )
     }
 
-    // TODO test
     // fn get_hours(&mut self) -> Result<Hours, Pcf8523Error<I2C::Error>> {
     //     let reg_val = self.read_reg(PCF8523_HOURS)?;
     //     let hours = if get_bits(self.read_reg(PCF8523_CONTROL_1)?, 1, 0b1000) == 0 {
@@ -148,7 +149,6 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(buffer[0])
     }
 
-    // TODO test
     pub fn select_hour_mode(&mut self, mode_12hr: bool) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut val = self.read_reg(PCF8523_CONTROL_1)?;
         set_bits(&mut val, mode_12hr as u8, 3, 0b1000);
@@ -156,7 +156,6 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(())
     }
 
-    // TODO test
     pub fn select_oscillator_capacitor(&mut self, cap12_5pf: bool) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut val = self.read_reg(PCF8523_CONTROL_1)?;
         set_bits(&mut val, cap12_5pf as u8, 7, 0b1000_0000);
@@ -164,7 +163,6 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(())
     }
 
-    // TODO test
     pub fn select_power_management(&mut self, power_management: PowerManagement) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut val = self.read_reg(PCF8523_CONTROL_3)?;
         set_bits(&mut val, power_management as u8, 5, 0b1110_0000);

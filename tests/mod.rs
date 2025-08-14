@@ -1,7 +1,7 @@
 use embedded_hal::i2c::ErrorKind::Other;
 use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
 use nxp_pcf8523::driver::{Pcf8523, PCF8523_I2C_ADDRESS};
-use nxp_pcf8523::typedefs::{Pcf8523Error, Pcf8523Interrupt};
+use nxp_pcf8523::typedefs::{Pcf8523Error, Pcf8523Interrupt, PowerManagement};
 use nxp_pcf8523::registers::*;
 
 #[test]
@@ -64,7 +64,31 @@ fn clear_watchdog_timer_a_interrupt_ok() {
 }
 
 #[test]
-fn get_battery_status_low() {
+fn freeze_rtc_time_circuits_ok() {
+    let expectations = [
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0101_1110),
+        i2c_reg_write(PCF8523_CONTROL_1, 0b0111_1110),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c);
+    driver.freeze_rtc_time_circuits(true).unwrap();
+    i2c.done();
+}
+
+#[test]
+fn get_battery_status_low_false_ok() {
+    let expectations = [
+        i2c_reg_read(PCF8523_CONTROL_3, 0b0),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c);
+    let low = driver.get_battery_status().unwrap();
+    assert!(!low);
+    i2c.done();
+}
+
+#[test]
+fn get_battery_status_low_true_ok() {
     let expectations = [
         i2c_reg_read(PCF8523_CONTROL_3, 0b100),
     ];
@@ -76,14 +100,50 @@ fn get_battery_status_low() {
 }
 
 #[test]
-fn get_battery_status_ok() {
+fn get_clock_integrity_guaranteed_false_ok() {
     let expectations = [
-        i2c_reg_read(PCF8523_CONTROL_3, 0b0),
+        i2c_reg_read(PCF8523_SECONDS, 0b1011_0010),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c);
-    let low = driver.get_battery_status().unwrap();
-    assert!(!low);
+    let guaranteed = driver.get_clock_integrity_guaranteed().unwrap();
+    assert!(!guaranteed);
+    i2c.done();
+}
+
+#[test]
+fn get_clock_integrity_guaranteed_true_ok() {
+    let expectations = [
+        i2c_reg_read(PCF8523_SECONDS, 0b0011_0010),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c);
+    let guaranteed = driver.get_clock_integrity_guaranteed().unwrap();
+    assert!(guaranteed);
+    i2c.done();
+}
+
+#[test]
+fn get_correction_interrupt_generated_false_ok() {
+    let expectations = [
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c);
+    let guaranteed = driver.get_correction_interrupt_generated().unwrap();
+    assert!(!guaranteed);
+    i2c.done();
+}
+
+#[test]
+fn get_correction_interrupt_generated_true_ok() {
+    let expectations = [
+        i2c_reg_read(PCF8523_CONTROL_1, 0b1),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c);
+    let guaranteed = driver.get_correction_interrupt_generated().unwrap();
+    assert!(guaranteed);
     i2c.done();
 }
 
@@ -340,6 +400,42 @@ fn get_seconds_ok() {
     let mut driver = Pcf8523::new(&mut i2c);
     let seconds = driver.get_seconds().unwrap();
     assert_eq!(seconds, 58u8);
+    i2c.done();
+}
+
+#[test]
+fn select_oscillator_capacitor_ok() {
+    let expectations = [
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0101_0110),
+        i2c_reg_write(PCF8523_CONTROL_1, 0b1101_0110),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c);
+    driver.select_oscillator_capacitor(true).unwrap();
+    i2c.done();
+}
+
+#[test]
+fn select_hour_mode_ok() {
+    let expectations = [
+        i2c_reg_read(PCF8523_CONTROL_1, 0b1001_0010),
+        i2c_reg_write(PCF8523_CONTROL_1, 0b1001_1010),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c);
+    driver.select_hour_mode(true).unwrap();
+    i2c.done();
+}
+
+#[test]
+fn select_power_management_ok() {
+    let expectations = [
+        i2c_reg_read(PCF8523_CONTROL_3, 0b0001_1010),
+        i2c_reg_write(PCF8523_CONTROL_3, 0b0101_1010),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c);
+    driver.select_power_management(PowerManagement::SwitchOverDisabledLowDetectionEnabled).unwrap();
     i2c.done();
 }
 
