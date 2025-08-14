@@ -25,6 +25,36 @@ pub const PCF8523_TMR_B_FREQ_CTRL: u8 = 0x12;
 pub const PCF8523_TMR_B_REG: u8 = 0x13;
 
 #[derive(Debug, PartialEq)]
+pub enum Meridiem {
+    AM = 0x0,
+    PM = 0x1,
+}
+// impl TryFrom<u8> for Meridiem {
+//     type Error = ();
+//     fn try_from(value: u8) -> Result<Self, Self::Error> {
+//         match value {
+//             0 => Ok(Meridiem::AM),
+//             1 => Ok(Meridiem::PM),
+//             _ => Err(()),
+//         }
+//     }
+// }
+
+#[derive(Debug, PartialEq)]
+pub struct Hours {
+    hours: u8,
+    meridiem: Option<Meridiem>
+}
+impl Hours {
+    pub fn new(hours: u8, meridiem: Option<Meridiem>) -> Self {
+        // if meridiem.is_some() {
+        //     // TODO validate < 13
+        // }
+        Self { hours, meridiem }
+    }
+}
+
+#[derive(Debug, PartialEq)]
 pub enum Pcf8523Error<E> {
     I2C(E),
 }
@@ -39,9 +69,21 @@ pub enum Pcf8523Interrupt {
     WatchdogTimerA,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum PowerManagement {
+    SwitchOverStandardLowDetectionEnabled = 0x0,
+    SwitchOverDirectSwitchingLowDetectionEnabled = 0x1,
+    SwitchOverDisabledLowDetectionEnabled = 0x2,
+    SwitchOverStandardLowDetectionDisabled = 0x4,
+    SwitchOverDirectSwitchingLowDetectionDisabled = 0x5,
+    SwitchOverDisabledLowDetectionDisabled = 0x7,
+}
+
 pub struct Pcf8523<I2C> {
     i2c: I2C
 }
+
+// TODO CONTROL_1 bit 0
 impl<I2C: I2c> Pcf8523<I2C> {
     pub fn new(i2c: I2C) -> Self {
         Self { i2c }
@@ -110,22 +152,68 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(())
     }
 
-    pub fn get_battery_status(&mut self, low: &mut bool) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let mut val = self.read_reg(PCF8523_CONTROL_3)?;
-        *low = (val >> 2) & 0b1 == 1;
+    // TODO test
+    pub fn freeze_rtc_time_circuits(&mut self, freeze: bool) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut val = self.read_reg(PCF8523_CONTROL_1)?;
+        set_bits(&mut val, 1, 5, 0b10_0000);
+        self.write_reg(PCF8523_CONTROL_1, val)?;
         Ok(())
     }
 
-    pub fn get_interrupt_enabled(&mut self, interrupt: Pcf8523Interrupt, enabled: &mut bool) -> Result<(), Pcf8523Error<I2C::Error>> {
-        *enabled = match interrupt {
-            Pcf8523Interrupt::Alarm => get_bits(self.read_reg(PCF8523_CONTROL_1)?, 1, 1) == 1,
-            Pcf8523Interrupt::BatterySwitchOver => get_bits(self.read_reg(PCF8523_CONTROL_3)?, 1, 1) == 1,
-            Pcf8523Interrupt::CountdownTimerA => get_bits(self.read_reg(PCF8523_CONTROL_2)?, 1, 1) == 1,
-            Pcf8523Interrupt::CountdownTimerB => get_bits(self.read_reg(PCF8523_CONTROL_2)?, 1, 0) == 1,
-            Pcf8523Interrupt::Second =>  get_bits(self.read_reg(PCF8523_CONTROL_1)?, 1, 2) == 1,
-            Pcf8523Interrupt::WatchdogTimerA => get_bits(self.read_reg(PCF8523_CONTROL_2)?, 1, 2) == 1,
-        };
-        Ok(())
+    pub fn get_battery_status(&mut self) -> Result<bool, Pcf8523Error<I2C::Error>> {
+        Ok((self.read_reg(PCF8523_CONTROL_3)? >> 2) & 0b1 == 1)
+    }
+
+    // fn get_clock_integrity_guaranteed(&mut self) -> Result<bool, Pcf8523Error<I2C::Error>> {
+    //     TODO 8.6.1
+    // }
+
+    pub fn get_day_of_month(&mut self) -> Result<u8, Pcf8523Error<I2C::Error>> {
+        Ok(decode_bcd(self.read_reg(PCF8523_DAYS)? & 0b11_1111))
+    }
+
+    pub fn get_day_of_week(&mut self) -> Result<u8, Pcf8523Error<I2C::Error>> {
+        Ok(decode_bcd(self.read_reg(PCF8523_WEEKDAYS)? & 0b111))
+    }
+
+    pub fn get_interrupt_enabled(&mut self, interrupt: Pcf8523Interrupt) -> Result<bool, Pcf8523Error<I2C::Error>> {
+        Ok(
+            match interrupt {
+                Pcf8523Interrupt::Alarm => get_bits(self.read_reg(PCF8523_CONTROL_1)?, 1, 1) == 1,
+                Pcf8523Interrupt::BatterySwitchOver => get_bits(self.read_reg(PCF8523_CONTROL_3)?, 1, 1) == 1,
+                Pcf8523Interrupt::CountdownTimerA => get_bits(self.read_reg(PCF8523_CONTROL_2)?, 1, 1) == 1,
+                Pcf8523Interrupt::CountdownTimerB => get_bits(self.read_reg(PCF8523_CONTROL_2)?, 1, 0) == 1,
+                Pcf8523Interrupt::Second =>  get_bits(self.read_reg(PCF8523_CONTROL_1)?, 1, 2) == 1,
+                Pcf8523Interrupt::WatchdogTimerA => get_bits(self.read_reg(PCF8523_CONTROL_2)?, 1, 2) == 1,
+            }
+        )
+    }
+
+    // TODO test
+    // fn get_hours(&mut self) -> Result<Hours, Pcf8523Error<I2C::Error>> {
+    //     let reg_val = self.read_reg(PCF8523_HOURS)?;
+    //     let hours = if get_bits(self.read_reg(PCF8523_CONTROL_1)?, 1, 0b1000) == 0 {
+    //         Hours::new(decode_bcd(get_bits(reg_val, 6, 0)), None)
+    //     } else {
+    //         Hours::new(decode_bcd(get_bits(reg_val, 5, 0)), get_bits(reg_val, 1, 5).try_into().unwrap())
+    //     };
+    //     Ok(hours)
+    // }
+
+    pub fn get_minutes(&mut self) -> Result<u8, Pcf8523Error<I2C::Error>> {
+        Ok(decode_bcd(self.read_reg(PCF8523_MINUTES)? & 0b111_1111))
+    }
+
+    pub fn get_month(&mut self) -> Result<u8, Pcf8523Error<I2C::Error>> {
+        Ok(decode_bcd(self.read_reg(PCF8523_MONTHS)? & 0b1_1111))
+    }
+
+    pub fn get_seconds(&mut self) -> Result<u8, Pcf8523Error<I2C::Error>> {
+        Ok(decode_bcd(self.read_reg(PCF8523_SECONDS)? & 0b111_1111))
+    }
+
+    pub fn get_year(&mut self) -> Result<u8, Pcf8523Error<I2C::Error>> {
+        Ok(decode_bcd(self.read_reg(PCF8523_YEARS)? & 0b1111_1111))
     }
 
     pub fn read_reg(&mut self, reg: u8) -> Result<u8, Pcf8523Error<I2C::Error>> {
@@ -134,8 +222,32 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(buffer[0])
     }
 
-    pub fn reset(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
-        self.write_reg(PCF8523_CONTROL_1, 0b0101_1000)
+    // TODO test
+    pub fn select_hour_mode(&mut self, mode_12hr: bool) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut val = self.read_reg(PCF8523_CONTROL_1)?;
+        set_bits(&mut val, mode_12hr as u8, 3, 0b1000);
+        self.write_reg(PCF8523_CONTROL_1, val)?;
+        Ok(())
+    }
+
+    // TODO test
+    pub fn select_oscillator_capacitor(&mut self, cap12_5pf: bool) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut val = self.read_reg(PCF8523_CONTROL_1)?;
+        set_bits(&mut val, cap12_5pf as u8, 7, 0b1000_0000);
+        self.write_reg(PCF8523_CONTROL_1, val)?;
+        Ok(())
+    }
+
+    // TODO test
+    pub fn select_power_management(&mut self, power_management: PowerManagement) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut val = self.read_reg(PCF8523_CONTROL_3)?;
+        set_bits(&mut val, power_management as u8, 5, 0b1110_0000);
+        self.write_reg(PCF8523_CONTROL_3, val)?;
+        Ok(())
+    }
+
+    pub fn software_reset(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        self.write_reg(PCF8523_CONTROL_1, 0b101_1000)
     }
 
     pub fn write_reg(&mut self, reg: u8, val: u8) -> Result<(), Pcf8523Error<I2C::Error>> {
@@ -259,8 +371,7 @@ mod tests {
         ];
         let mut i2c = I2cMock::new(&expectations);
         let mut driver = Pcf8523::new(&mut i2c);
-        let mut low = false;
-        driver.get_battery_status(&mut low).unwrap();
+        let low = driver.get_battery_status().unwrap();
         assert!(low);
         i2c.done();
     }
@@ -272,9 +383,37 @@ mod tests {
         ];
         let mut i2c = I2cMock::new(&expectations);
         let mut driver = Pcf8523::new(&mut i2c);
-        let mut low = true;
-        driver.get_battery_status(&mut low).unwrap();
+        let low = driver.get_battery_status().unwrap();
         assert!(!low);
+        i2c.done();
+    }
+
+    #[test]
+    fn get_day_of_month_leap_year_ok() {
+        // TODO
+    }
+
+    #[test]
+    fn get_day_of_month_ok() {
+        let expectations = [
+            i2c_reg_read(PCF8523_DAYS, 0b1_1111),
+        ];
+        let mut i2c = I2cMock::new(&expectations);
+        let mut driver = Pcf8523::new(&mut i2c);
+        let day = driver.get_day_of_month().unwrap();
+        assert_eq!(day, 25u8);
+        i2c.done();
+    }
+
+    #[test]
+    fn get_day_of_week_ok() {
+        let expectations = [
+            i2c_reg_read(PCF8523_WEEKDAYS, 0b110),
+        ];
+        let mut i2c = I2cMock::new(&expectations);
+        let mut driver = Pcf8523::new(&mut i2c);
+        let day = driver.get_day_of_week().unwrap();
+        assert_eq!(day, 6u8);
         i2c.done();
     }
 
@@ -285,8 +424,7 @@ mod tests {
         ];
         let mut i2c = I2cMock::new(&expectations);
         let mut driver = Pcf8523::new(&mut i2c);
-        let mut enabled = true;
-        driver.get_interrupt_enabled(Pcf8523Interrupt::Alarm, &mut enabled).unwrap();
+        let enabled = driver.get_interrupt_enabled(Pcf8523Interrupt::Alarm).unwrap();
         assert!(!enabled);
         i2c.done();
     }
@@ -298,8 +436,7 @@ mod tests {
         ];
         let mut i2c = I2cMock::new(&expectations);
         let mut driver = Pcf8523::new(&mut i2c);
-        let mut enabled = false;
-        driver.get_interrupt_enabled(Pcf8523Interrupt::Alarm, &mut enabled).unwrap();
+        let enabled = driver.get_interrupt_enabled(Pcf8523Interrupt::Alarm).unwrap();
         assert!(enabled);
         i2c.done();
     }
@@ -311,8 +448,7 @@ mod tests {
         ];
         let mut i2c = I2cMock::new(&expectations);
         let mut driver = Pcf8523::new(&mut i2c);
-        let mut enabled = true;
-        driver.get_interrupt_enabled(Pcf8523Interrupt::BatterySwitchOver, &mut enabled).unwrap();
+        let enabled = driver.get_interrupt_enabled(Pcf8523Interrupt::BatterySwitchOver).unwrap();
         assert!(!enabled);
         i2c.done();
     }
@@ -324,8 +460,7 @@ mod tests {
         ];
         let mut i2c = I2cMock::new(&expectations);
         let mut driver = Pcf8523::new(&mut i2c);
-        let mut enabled = false;
-        driver.get_interrupt_enabled(Pcf8523Interrupt::BatterySwitchOver, &mut enabled).unwrap();
+        let enabled = driver.get_interrupt_enabled(Pcf8523Interrupt::BatterySwitchOver).unwrap();
         assert!(enabled);
         i2c.done();
     }
@@ -337,8 +472,7 @@ mod tests {
         ];
         let mut i2c = I2cMock::new(&expectations);
         let mut driver = Pcf8523::new(&mut i2c);
-        let mut enabled = true;
-        driver.get_interrupt_enabled(Pcf8523Interrupt::CountdownTimerA, &mut enabled).unwrap();
+        let enabled = driver.get_interrupt_enabled(Pcf8523Interrupt::CountdownTimerA).unwrap();
         assert!(!enabled);
         i2c.done();
     }
@@ -350,8 +484,7 @@ mod tests {
         ];
         let mut i2c = I2cMock::new(&expectations);
         let mut driver = Pcf8523::new(&mut i2c);
-        let mut enabled = false;
-        driver.get_interrupt_enabled(Pcf8523Interrupt::CountdownTimerA, &mut enabled).unwrap();
+        let enabled = driver.get_interrupt_enabled(Pcf8523Interrupt::CountdownTimerA).unwrap();
         assert!(enabled);
         i2c.done();
     }
@@ -363,8 +496,7 @@ mod tests {
         ];
         let mut i2c = I2cMock::new(&expectations);
         let mut driver = Pcf8523::new(&mut i2c);
-        let mut enabled = true;
-        driver.get_interrupt_enabled(Pcf8523Interrupt::CountdownTimerB, &mut enabled).unwrap();
+        let enabled = driver.get_interrupt_enabled(Pcf8523Interrupt::CountdownTimerB).unwrap();
         assert!(!enabled);
         i2c.done();
     }
@@ -376,8 +508,7 @@ mod tests {
         ];
         let mut i2c = I2cMock::new(&expectations);
         let mut driver = Pcf8523::new(&mut i2c);
-        let mut enabled = false;
-        driver.get_interrupt_enabled(Pcf8523Interrupt::CountdownTimerB, &mut enabled).unwrap();
+        let enabled = driver.get_interrupt_enabled(Pcf8523Interrupt::CountdownTimerB).unwrap();
         assert!(enabled);
         i2c.done();
     }
@@ -389,8 +520,7 @@ mod tests {
         ];
         let mut i2c = I2cMock::new(&expectations);
         let mut driver = Pcf8523::new(&mut i2c);
-        let mut enabled = true;
-        driver.get_interrupt_enabled(Pcf8523Interrupt::Second, &mut enabled).unwrap();
+        let enabled = driver.get_interrupt_enabled(Pcf8523Interrupt::Second).unwrap();
         assert!(!enabled);
         i2c.done();
     }
@@ -402,8 +532,7 @@ mod tests {
         ];
         let mut i2c = I2cMock::new(&expectations);
         let mut driver = Pcf8523::new(&mut i2c);
-        let mut enabled = false;
-        driver.get_interrupt_enabled(Pcf8523Interrupt::Second, &mut enabled).unwrap();
+        let enabled = driver.get_interrupt_enabled(Pcf8523Interrupt::Second).unwrap();
         assert!(enabled);
         i2c.done();
     }
@@ -415,8 +544,7 @@ mod tests {
         ];
         let mut i2c = I2cMock::new(&expectations);
         let mut driver = Pcf8523::new(&mut i2c);
-        let mut enabled = true;
-        driver.get_interrupt_enabled(Pcf8523Interrupt::WatchdogTimerA, &mut enabled).unwrap();
+        let enabled = driver.get_interrupt_enabled(Pcf8523Interrupt::WatchdogTimerA).unwrap();
         assert!(!enabled);
         i2c.done();
     }
@@ -428,9 +556,32 @@ mod tests {
         ];
         let mut i2c = I2cMock::new(&expectations);
         let mut driver = Pcf8523::new(&mut i2c);
-        let mut enabled = false;
-        driver.get_interrupt_enabled(Pcf8523Interrupt::WatchdogTimerA, &mut enabled).unwrap();
+        let enabled = driver.get_interrupt_enabled(Pcf8523Interrupt::WatchdogTimerA).unwrap();
         assert!(enabled);
+        i2c.done();
+    }
+
+    #[test]
+    fn get_month_ok() {
+        let expectations = [
+            i2c_reg_read(PCF8523_MONTHS, 0b1_0001),
+        ];
+        let mut i2c = I2cMock::new(&expectations);
+        let mut driver = Pcf8523::new(&mut i2c);
+        let month = driver.get_month().unwrap();
+        assert_eq!(month, 11u8);
+        i2c.done();
+    }
+
+    #[test]
+    fn get_year_ok() {
+        let expectations = [
+            i2c_reg_read(PCF8523_YEARS, 0b10_0101),
+        ];
+        let mut i2c = I2cMock::new(&expectations);
+        let mut driver = Pcf8523::new(&mut i2c);
+        let year = driver.get_year().unwrap();
+        assert_eq!(year, 25u8);
         i2c.done();
     }
 
@@ -465,7 +616,31 @@ mod tests {
         ];
         let mut i2c = I2cMock::new(&expectations);
         let mut driver = Pcf8523::new(&mut i2c);
-        driver.reset().unwrap();
+        driver.software_reset().unwrap();
+        i2c.done();
+    }
+
+    #[test]
+    fn get_minutes_ok() {
+        let expectations = [
+            i2c_reg_read(PCF8523_MINUTES, 0b0001_1011),
+        ];
+        let mut i2c = I2cMock::new(&expectations);
+        let mut driver = Pcf8523::new(&mut i2c);
+        let minutes = driver.get_minutes().unwrap();
+        assert_eq!(minutes, 21u8);
+        i2c.done();
+    }
+
+    #[test]
+    fn get_seconds_ok() {
+        let expectations = [
+            i2c_reg_read(PCF8523_SECONDS, 0b0101_1000),
+        ];
+        let mut i2c = I2cMock::new(&expectations);
+        let mut driver = Pcf8523::new(&mut i2c);
+        let seconds = driver.get_seconds().unwrap();
+        assert_eq!(seconds, 58u8);
         i2c.done();
     }
 
