@@ -1,5 +1,3 @@
-use crate::bits::encode_bcd;
-
 #[derive(Debug, PartialEq)]
 pub enum Meridiem {
     AM = 0x0,

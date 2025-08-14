@@ -98,10 +98,19 @@ impl<I2C: I2c> Pcf8523<I2C> {
     }
 
     // 8.6.8
-    // use an i2c transaction to complete accesses in < 1s and avoid corruption
-    pub fn get_datetime(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
-        // TODO hours->years should be set in one transaction
-        Ok(())
+    // use an i2c transaction to complete accesses in < 1 second and avoid corruption
+    pub fn get_datetime(&mut self) -> Result<DateTime, Pcf8523Error<I2C::Error>> {
+        let mut dt = DateTime::default();
+        self.i2c.transaction(PCF8523_I2C_ADDRESS, &mut [
+            Operation::Write(&[PCF8523_SECONDS]), Operation::Read(&mut [dt.seconds]),
+            Operation::Write(&[PCF8523_MINUTES]), Operation::Read(&mut [dt.minutes]),
+            Operation::Write(&[PCF8523_HOURS]), Operation::Read(&mut [dt.hours]),
+            Operation::Write(&[PCF8523_DAYS]), Operation::Read(&mut [dt.day]),
+            Operation::Write(&[PCF8523_WEEKDAYS]), Operation::Read(&mut [dt.day_of_week]),
+            Operation::Write(&[PCF8523_MONTHS]), Operation::Read(&mut [dt.month]),
+            Operation::Write(&[PCF8523_YEARS]), Operation::Read(&mut [dt.year]),
+        ]).map_err(Pcf8523Error::I2C)?;
+        Ok(dt.decode())
     }
 
     pub fn get_day_of_month(&mut self) -> Result<u8, Pcf8523Error<I2C::Error>> {
@@ -179,8 +188,9 @@ impl<I2C: I2c> Pcf8523<I2C> {
     }
 
     // 8.6.8
-    // use an i2c transaction to complete accesses in < 1s and avoid corruption
+    // use an i2c transaction to complete accesses in < 1 second and avoid corruption
     pub fn set_datetime(&mut self, dt: DateTime) -> Result<(), Pcf8523Error<I2C::Error>> {
+        dt.encode();
         self.i2c.transaction(PCF8523_I2C_ADDRESS, &mut [
             Operation::Write(&[PCF8523_SECONDS, dt.seconds]),
             Operation::Write(&[PCF8523_MINUTES, dt.minutes]),

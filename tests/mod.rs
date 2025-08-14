@@ -1,6 +1,7 @@
 use embedded_hal::i2c::ErrorKind::Other;
+use embedded_hal::i2c::Operation;
 use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
-use nxp_pcf8523::datetime::DateTime;
+use nxp_pcf8523::datetime::{DateTime, DayOfWeek, Month};
 use nxp_pcf8523::driver::{Pcf8523, PCF8523_I2C_ADDRESS};
 use nxp_pcf8523::typedefs::{Pcf8523Error, Pcf8523Interrupt, PowerManagement};
 use nxp_pcf8523::registers::*;
@@ -145,6 +146,34 @@ fn get_correction_interrupt_generated_true_ok() {
     let mut driver = Pcf8523::new(&mut i2c);
     let guaranteed = driver.get_correction_interrupt_generated().unwrap();
     assert!(guaranteed);
+    i2c.done();
+}
+
+#[test]
+fn get_datetime_ok() {
+    let expectations = [
+        I2cTransaction::transaction_start(PCF8523_I2C_ADDRESS),
+        // all payloads are bcd-encoded
+        I2cTransaction::write(PCF8523_I2C_ADDRESS, [PCF8523_SECONDS].to_vec()),
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        I2cTransaction::write(PCF8523_I2C_ADDRESS, [PCF8523_MINUTES].to_vec()),
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        I2cTransaction::write(PCF8523_I2C_ADDRESS, [PCF8523_HOURS].to_vec()),
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        I2cTransaction::write(PCF8523_I2C_ADDRESS, [PCF8523_DAYS].to_vec()),
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        I2cTransaction::write(PCF8523_I2C_ADDRESS, [PCF8523_WEEKDAYS].to_vec()),
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        I2cTransaction::write(PCF8523_I2C_ADDRESS, [PCF8523_MONTHS].to_vec()),
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b1].to_vec()),
+        I2cTransaction::write(PCF8523_I2C_ADDRESS, [PCF8523_YEARS].to_vec()),
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        I2cTransaction::transaction_end(PCF8523_I2C_ADDRESS),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c);
+    let dt = driver.get_datetime().unwrap();
+    assert_eq!(dt.seconds, 0);
     i2c.done();
 }
 
@@ -444,19 +473,18 @@ fn select_power_management_ok() {
 fn set_datetime_ok() {
     let expectations = [
         I2cTransaction::transaction_start(PCF8523_I2C_ADDRESS),
-        // all payloads are bcd-encoded
-        i2c_reg_write(PCF8523_SECONDS, 0b101_1001),
-        i2c_reg_write(PCF8523_MINUTES, 0b1_0101),
+        i2c_reg_write(PCF8523_SECONDS, 0b11_1011),
+        i2c_reg_write(PCF8523_MINUTES, 0b1111),
         i2c_reg_write(PCF8523_HOURS, 0b10),
-        i2c_reg_write(PCF8523_DAYS, 0b1_0001),
+        i2c_reg_write(PCF8523_DAYS, 0b1011),
         i2c_reg_write(PCF8523_WEEKDAYS, 0b11),
-        i2c_reg_write(PCF8523_MONTHS, 0b1_0000),
-        i2c_reg_write(PCF8523_YEARS, 0b0100_0101),
+        i2c_reg_write(PCF8523_MONTHS, 0b1010),
+        i2c_reg_write(PCF8523_YEARS, 0b10_1101),
         I2cTransaction::transaction_end(PCF8523_I2C_ADDRESS),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c);
-    let datetime = DateTime::new(59, 15, 2, 11, 3, 10, 45).unwrap();
+    let datetime = DateTime::new(59, 15, 2, 11, DayOfWeek::Wednesday, Month::October, 45).unwrap();
     driver.set_datetime(datetime).unwrap();
     i2c.done();
 }
