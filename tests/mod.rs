@@ -1,5 +1,6 @@
 use embedded_hal::i2c::ErrorKind::Other;
 use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
+use nxp_pcf8523::datetime::DateTime;
 use nxp_pcf8523::driver::{Pcf8523, PCF8523_I2C_ADDRESS};
 use nxp_pcf8523::typedefs::{Pcf8523Error, Pcf8523Interrupt, PowerManagement};
 use nxp_pcf8523::registers::*;
@@ -321,6 +322,18 @@ fn get_interrupt_enabled_watchdog_timer_a_true() {
 }
 
 #[test]
+fn get_minutes_ok() {
+    let expectations = [
+        i2c_reg_read(PCF8523_MINUTES, 0b0001_1011),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c);
+    let minutes = driver.get_minutes().unwrap();
+    assert_eq!(minutes, 21u8);
+    i2c.done();
+}
+
+#[test]
 fn get_month_ok() {
     let expectations = [
         i2c_reg_read(PCF8523_MONTHS, 0b1_0001),
@@ -329,6 +342,18 @@ fn get_month_ok() {
     let mut driver = Pcf8523::new(&mut i2c);
     let month = driver.get_month().unwrap();
     assert_eq!(month, 11u8);
+    i2c.done();
+}
+
+#[test]
+fn get_seconds_ok() {
+    let expectations = [
+        i2c_reg_read(PCF8523_SECONDS, 0b0101_1000),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c);
+    let seconds = driver.get_seconds().unwrap();
+    assert_eq!(seconds, 58u8);
     i2c.done();
 }
 
@@ -380,30 +405,6 @@ fn reset_ok() {
 }
 
 #[test]
-fn get_minutes_ok() {
-    let expectations = [
-        i2c_reg_read(PCF8523_MINUTES, 0b0001_1011),
-    ];
-    let mut i2c = I2cMock::new(&expectations);
-    let mut driver = Pcf8523::new(&mut i2c);
-    let minutes = driver.get_minutes().unwrap();
-    assert_eq!(minutes, 21u8);
-    i2c.done();
-}
-
-#[test]
-fn get_seconds_ok() {
-    let expectations = [
-        i2c_reg_read(PCF8523_SECONDS, 0b0101_1000),
-    ];
-    let mut i2c = I2cMock::new(&expectations);
-    let mut driver = Pcf8523::new(&mut i2c);
-    let seconds = driver.get_seconds().unwrap();
-    assert_eq!(seconds, 58u8);
-    i2c.done();
-}
-
-#[test]
 fn select_oscillator_capacitor_ok() {
     let expectations = [
         i2c_reg_read(PCF8523_CONTROL_1, 0b0101_0110),
@@ -436,6 +437,27 @@ fn select_power_management_ok() {
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c);
     driver.select_power_management(PowerManagement::SwitchOverDisabledLowDetectionEnabled).unwrap();
+    i2c.done();
+}
+
+#[test]
+fn set_datetime_ok() {
+    let expectations = [
+        I2cTransaction::transaction_start(PCF8523_I2C_ADDRESS),
+        // all payloads are bcd-encoded
+        i2c_reg_write(PCF8523_SECONDS, 0b101_1001),
+        i2c_reg_write(PCF8523_MINUTES, 0b1_0101),
+        i2c_reg_write(PCF8523_HOURS, 0b10),
+        i2c_reg_write(PCF8523_DAYS, 0b1_0001),
+        i2c_reg_write(PCF8523_WEEKDAYS, 0b11),
+        i2c_reg_write(PCF8523_MONTHS, 0b1_0000),
+        i2c_reg_write(PCF8523_YEARS, 0b0100_0101),
+        I2cTransaction::transaction_end(PCF8523_I2C_ADDRESS),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c);
+    let datetime = DateTime::new(59, 15, 2, 11, 3, 10, 45).unwrap();
+    driver.set_datetime(datetime).unwrap();
     i2c.done();
 }
 

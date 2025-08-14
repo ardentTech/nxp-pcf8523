@@ -1,7 +1,8 @@
-use embedded_hal::i2c::I2c;
+use embedded_hal::i2c::{I2c, Operation};
 use crate::typedefs::{Pcf8523Error, Pcf8523Interrupt, PowerManagement};
 use crate::bits::{decode_bcd, get_bits, set_bits};
-use crate::registers::{PCF8523_CONTROL_1, PCF8523_CONTROL_2, PCF8523_CONTROL_3, PCF8523_DAYS, PCF8523_MINUTES, PCF8523_MONTHS, PCF8523_SECONDS, PCF8523_WEEKDAYS, PCF8523_YEARS};
+use crate::datetime::DateTime;
+use crate::registers::{PCF8523_CONTROL_1, PCF8523_CONTROL_2, PCF8523_CONTROL_3, PCF8523_DAYS, PCF8523_HOURS, PCF8523_MINUTES, PCF8523_MONTHS, PCF8523_SECONDS, PCF8523_WEEKDAYS, PCF8523_YEARS};
 
 pub const PCF8523_I2C_ADDRESS: u8 = 0x68;
 
@@ -96,6 +97,13 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(get_bits(self.read_reg(PCF8523_CONTROL_1)?, 1, 0) == 1)
     }
 
+    // 8.6.8
+    // use an i2c transaction to complete accesses in < 1s and avoid corruption
+    pub fn get_datetime(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        // TODO hours->years should be set in one transaction
+        Ok(())
+    }
+
     pub fn get_day_of_month(&mut self) -> Result<u8, Pcf8523Error<I2C::Error>> {
         Ok(decode_bcd(self.read_reg(PCF8523_DAYS)? & 0b11_1111))
     }
@@ -167,6 +175,21 @@ impl<I2C: I2c> Pcf8523<I2C> {
         let mut val = self.read_reg(PCF8523_CONTROL_3)?;
         set_bits(&mut val, power_management as u8, 5, 0b1110_0000);
         self.write_reg(PCF8523_CONTROL_3, val)?;
+        Ok(())
+    }
+
+    // 8.6.8
+    // use an i2c transaction to complete accesses in < 1s and avoid corruption
+    pub fn set_datetime(&mut self, dt: DateTime) -> Result<(), Pcf8523Error<I2C::Error>> {
+        self.i2c.transaction(PCF8523_I2C_ADDRESS, &mut [
+            Operation::Write(&[PCF8523_SECONDS, dt.seconds]),
+            Operation::Write(&[PCF8523_MINUTES, dt.minutes]),
+            Operation::Write(&[PCF8523_HOURS, dt.hours]),
+            Operation::Write(&[PCF8523_DAYS, dt.day]),
+            Operation::Write(&[PCF8523_WEEKDAYS, dt.day_of_week]),
+            Operation::Write(&[PCF8523_MONTHS, dt.month]),
+            Operation::Write(&[PCF8523_YEARS, dt.year]),
+        ]).map_err(Pcf8523Error::I2C)?;
         Ok(())
     }
 
