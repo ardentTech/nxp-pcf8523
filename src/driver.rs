@@ -36,11 +36,15 @@ impl<I2C: I2c> Pcf8523<I2C> {
             Operation::Write(&[PCF8523_MINUTES, dt.minutes]),
             Operation::Write(&[PCF8523_HOURS, dt.hours]),
             Operation::Write(&[PCF8523_DAYS, dt.day]),
-            // Operation::Write(&[PCF8523_WEEKDAYS, dt.day_of_week]), // TODO
             Operation::Write(&[PCF8523_MONTHS, dt.month]),
             Operation::Write(&[PCF8523_YEARS, dt.year]),
         ])?;
         Ok(())
+    }
+
+    pub fn lost_power(&mut self) -> Result<bool, Pcf8523Error<I2C::Error>> {
+        let reg_val = self.read_reg(PCF8523_SECONDS)?;
+        Ok((reg_val >> 7) == 1)
     }
 
     pub fn now(&mut self) -> Result<Pcf8523DateTime, Pcf8523Error<I2C::Error>> {
@@ -48,7 +52,6 @@ impl<I2C: I2c> Pcf8523<I2C> {
         let mut minutes = [0u8];
         let mut hours = [0u8];
         let mut day = [0u8];
-        //let mut day_of_week = [0u8];
         let mut month = [0u8];
         let mut year = [0u8];
         self.i2c.transaction(PCF8523_I2C_ADDRESS, &mut [
@@ -56,7 +59,6 @@ impl<I2C: I2c> Pcf8523<I2C> {
             Operation::Write(&[PCF8523_MINUTES]), Operation::Read(&mut minutes),
             Operation::Write(&[PCF8523_HOURS]), Operation::Read(&mut hours),
             Operation::Write(&[PCF8523_DAYS]), Operation::Read(&mut day),
-            //Operation::Write(&[PCF8523_WEEKDAYS]), Operation::Read(&mut day_of_week),
             Operation::Write(&[PCF8523_MONTHS]), Operation::Read(&mut month),
             Operation::Write(&[PCF8523_YEARS]), Operation::Read(&mut year),
         ])?;

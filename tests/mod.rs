@@ -23,9 +23,6 @@ fn get_datetime_ok() {
         I2cTransaction::write(PCF8523_I2C_ADDRESS, [PCF8523_DAYS].to_vec()),
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
 
-        // I2cTransaction::write(PCF8523_I2C_ADDRESS, [PCF8523_WEEKDAYS].to_vec()),
-        // I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
-
         I2cTransaction::write(PCF8523_I2C_ADDRESS, [PCF8523_MONTHS].to_vec()),
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b1].to_vec()),
 
@@ -39,6 +36,30 @@ fn get_datetime_ok() {
     let dt = driver.now().unwrap();
     assert_eq!(dt.seconds, 15);
     // TODO other assertions
+    i2c.done();
+}
+
+#[test]
+fn lost_power_false() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_SECONDS, 0b0111_1111)
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    assert!(!driver.lost_power().unwrap());
+    i2c.done();
+}
+
+#[test]
+fn lost_power_true() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_SECONDS, 0b1111_1111)
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    assert!(driver.lost_power().unwrap());
     i2c.done();
 }
 
@@ -62,7 +83,6 @@ fn set_datetime_ok() {
         i2c_reg_write(PCF8523_MINUTES, 0b1_0101),
         i2c_reg_write(PCF8523_HOURS, 0b10),
         i2c_reg_write(PCF8523_DAYS, 0b1_0001),
-        //i2c_reg_write(PCF8523_WEEKDAYS, 0b11),
         i2c_reg_write(PCF8523_MONTHS, 0b1_0000),
         i2c_reg_write(PCF8523_YEARS, 0b100_0101),
         I2cTransaction::transaction_end(PCF8523_I2C_ADDRESS),
@@ -74,7 +94,6 @@ fn set_datetime_ok() {
         minutes: 15,
         hours: 2,
         day: 11,
-        //day_of_week[0].try_into().unwrap(),
         month: 10,
         year: 45,
     };
