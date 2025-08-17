@@ -1,4 +1,5 @@
 use embedded_hal::i2c::{ErrorType, I2c, Operation};
+use crate::bits::set_bits;
 use crate::datetime::Pcf8523DateTime;
 use crate::registers::*;
 
@@ -24,24 +25,6 @@ impl<I2C: I2c> Pcf8523<I2C> {
         let mut peri = Self { i2c };
         peri.i2c.read(PCF8523_I2C_ADDRESS, &mut [0u8])?;
         Ok(peri)
-    }
-
-    pub fn set_datetime(
-        &mut self,
-        datetime: Pcf8523DateTime,
-    ) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let dt = datetime.encode();
-        self.i2c.transaction(PCF8523_I2C_ADDRESS, &mut [
-            Operation::Write(&[PCF8523_SECONDS, dt.seconds]),
-            Operation::Write(&[PCF8523_MINUTES, dt.minutes]),
-            Operation::Write(&[PCF8523_HOURS, dt.hours]),
-            Operation::Write(&[PCF8523_DAYS, dt.day]),
-            Operation::Write(&[PCF8523_MONTHS, dt.month]),
-            Operation::Write(&[PCF8523_YEARS, dt.year]),
-        ])?;
-        // enable battery switch-over and low detection function
-        self.write_reg(PCF8523_CONTROL_3, 0b0)?;
-        Ok(())
     }
 
     pub fn initialized(&mut self) -> Result<bool, Pcf8523Error<I2C::Error>> {
@@ -89,6 +72,38 @@ impl<I2C: I2c> Pcf8523<I2C> {
 
     pub fn reset(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         self.write_reg(PCF8523_CONTROL_1, 0b101_1000)
+    }
+
+    pub fn set_datetime(
+        &mut self,
+        datetime: Pcf8523DateTime,
+    ) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let dt = datetime.encode();
+        self.i2c.transaction(PCF8523_I2C_ADDRESS, &mut [
+            Operation::Write(&[PCF8523_SECONDS, dt.seconds]),
+            Operation::Write(&[PCF8523_MINUTES, dt.minutes]),
+            Operation::Write(&[PCF8523_HOURS, dt.hours]),
+            Operation::Write(&[PCF8523_DAYS, dt.day]),
+            Operation::Write(&[PCF8523_MONTHS, dt.month]),
+            Operation::Write(&[PCF8523_YEARS, dt.year]),
+        ])?;
+        // enable battery switch-over and low detection function
+        self.write_reg(PCF8523_CONTROL_3, 0b0)?;
+        Ok(())
+    }
+
+    pub fn start(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        self.start_stop(true)
+    }
+
+    pub fn stop(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        self.start_stop(false)
+    }
+
+    fn start_stop(&mut self, start: bool) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
+        set_bits(&mut reg_val, start as u8, 5, 0b10_0000);
+        self.write_reg(PCF8523_CONTROL_1, reg_val)
     }
 
     pub fn write_reg(&mut self, reg: u8, val: u8) -> Result<(), Pcf8523Error<I2C::Error>> {

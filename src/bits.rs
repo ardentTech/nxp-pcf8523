@@ -8,6 +8,15 @@ pub(crate) fn encode_bcd(a: u8) -> u8 {
     a % 10 | (a / 10 << 4)
 }
 
+pub(crate) fn get_bits(byte: u8, bits: u8, lsb_offset: u8) -> u8 {
+    (byte >> lsb_offset) & ((1 << (bits)) - 1)
+}
+
+pub(crate) fn set_bits(byte: &mut u8, data: u8, lsb_offset: u8, mask: u8) {
+    *byte &= !mask;
+    *byte |= (data << lsb_offset) & mask
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
