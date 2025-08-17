@@ -39,7 +39,14 @@ impl<I2C: I2c> Pcf8523<I2C> {
             Operation::Write(&[PCF8523_MONTHS, dt.month]),
             Operation::Write(&[PCF8523_YEARS, dt.year]),
         ])?;
+        // enable battery switch-over and low detection function
+        self.write_reg(PCF8523_CONTROL_3, 0b0)?;
         Ok(())
+    }
+
+    pub fn initialized(&mut self) -> Result<bool, Pcf8523Error<I2C::Error>> {
+        // 0b1110_0000 is the value of PCF8523_CONTROL_3 after a reset
+        Ok((self.read_reg(PCF8523_CONTROL_3)? & 0b1110_0000) != 0b1110_0000)
     }
 
     pub fn lost_power(&mut self) -> Result<bool, Pcf8523Error<I2C::Error>> {

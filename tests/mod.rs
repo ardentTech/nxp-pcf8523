@@ -40,6 +40,30 @@ fn get_datetime_ok() {
 }
 
 #[test]
+fn initialized_false() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_3, 0b1110_0000)
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    assert!(!driver.initialized().unwrap());
+    i2c.done();
+}
+
+#[test]
+fn initialized_true() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_3, 0b0)
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    assert!(driver.initialized().unwrap());
+    i2c.done();
+}
+
+#[test]
 fn lost_power_false() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
@@ -86,6 +110,7 @@ fn set_datetime_ok() {
         i2c_reg_write(PCF8523_MONTHS, 0b1_0000),
         i2c_reg_write(PCF8523_YEARS, 0b100_0101),
         I2cTransaction::transaction_end(PCF8523_I2C_ADDRESS),
+        i2c_reg_write(PCF8523_CONTROL_3, 0b0),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
