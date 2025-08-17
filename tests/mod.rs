@@ -137,6 +137,30 @@ fn reset_ok() {
 }
 
 #[test]
+fn running_false() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0110_1001)
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    assert!(!driver.running().unwrap());
+    i2c.done();
+}
+
+#[test]
+fn running_true() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0100_1001)
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    assert!(driver.running().unwrap());
+    i2c.done();
+}
+
+#[test]
 fn set_datetime_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),

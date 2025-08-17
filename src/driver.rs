@@ -1,5 +1,5 @@
 use embedded_hal::i2c::{ErrorType, I2c, Operation};
-use crate::bits::set_bits;
+use crate::bits::{get_bits, set_bits};
 use crate::datetime::Pcf8523DateTime;
 use crate::registers::*;
 
@@ -72,6 +72,11 @@ impl<I2C: I2c> Pcf8523<I2C> {
 
     pub fn reset(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         self.write_reg(PCF8523_CONTROL_1, 0b101_1000)
+    }
+
+    pub fn running(&mut self) -> Result<bool, Pcf8523Error<I2C::Error>> {
+        let reg_val = self.read_reg(PCF8523_CONTROL_1)?;
+        Ok(get_bits(reg_val, 1, 5) == 0)
     }
 
     pub fn set_datetime(
