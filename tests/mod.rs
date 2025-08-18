@@ -1,6 +1,8 @@
+use embedded_hal::i2c::ErrorKind;
 use embedded_hal::i2c::ErrorKind::{NoAcknowledge, Other};
 use embedded_hal::i2c::NoAcknowledgeSource::Address;
-use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
+use embedded_hal_mock::common::Generic;
+use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction, Transaction};
 use nxp_pcf8523::datetime::Pcf8523DateTime;
 use nxp_pcf8523::driver::{Pcf8523, Pcf8523Error, PCF8523_I2C_ADDRESS};
 use nxp_pcf8523::registers::*;
@@ -93,8 +95,10 @@ fn new_err() {
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()).with_error(NoAcknowledge(Address)),
     ];
     let mut i2c = I2cMock::new(&expectations);
-    let err = Pcf8523::new(&mut i2c).unwrap_err();
-    assert_eq!(err, Pcf8523Error::I2C(NoAcknowledge(Address)));
+    match Pcf8523::new(&mut i2c) {
+        Err(err) => assert_eq!(err, Pcf8523Error::I2C(NoAcknowledge(Address))),
+        _ => panic!(),
+    }
     i2c.done();
 }
 
@@ -192,8 +196,8 @@ fn set_datetime_ok() {
 fn start_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
-        i2c_reg_read(PCF8523_CONTROL_1, 0b0101_1010),
-        i2c_reg_write(PCF8523_CONTROL_1, 0b0111_1010),
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0111_1010),
+        i2c_reg_write(PCF8523_CONTROL_1, 0b0101_1010),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
@@ -205,8 +209,8 @@ fn start_ok() {
 fn stop_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
-        i2c_reg_read(PCF8523_CONTROL_1, 0b0111_1010),
-        i2c_reg_write(PCF8523_CONTROL_1, 0b0101_1010),
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0101_1010),
+        i2c_reg_write(PCF8523_CONTROL_1, 0b0111_1010),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c).unwrap();

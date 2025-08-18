@@ -98,16 +98,16 @@ impl<I2C: I2c> Pcf8523<I2C> {
     }
 
     pub fn start(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
-        self.start_stop(true)
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
+        if get_bits(reg_val, 1, 5) == 1 {
+            set_bits(&mut reg_val, 0, 5, 0b10_0000);
+        }
+        self.write_reg(PCF8523_CONTROL_1, reg_val)
     }
 
     pub fn stop(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
-        self.start_stop(false)
-    }
-
-    fn start_stop(&mut self, start: bool) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
-        set_bits(&mut reg_val, start as u8, 5, 0b10_0000);
+        set_bits(&mut reg_val, 1, 5, 0b10_0000);
         self.write_reg(PCF8523_CONTROL_1, reg_val)
     }
 
