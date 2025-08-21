@@ -1,8 +1,6 @@
-use embedded_hal::i2c::ErrorKind;
 use embedded_hal::i2c::ErrorKind::{NoAcknowledge, Other};
 use embedded_hal::i2c::NoAcknowledgeSource::Address;
-use embedded_hal_mock::common::Generic;
-use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction, Transaction};
+use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
 use nxp_pcf8523::datetime::Pcf8523DateTime;
 use nxp_pcf8523::driver::{Pcf8523, Pcf8523Error, PCF8523_I2C_ADDRESS};
 use nxp_pcf8523::registers::*;

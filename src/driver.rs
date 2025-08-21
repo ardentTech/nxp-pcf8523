@@ -1,4 +1,4 @@
-use embedded_hal::i2c::{ErrorType, I2c, Operation};
+use embedded_hal::i2c::{I2c, Operation};
 use crate::bits::{get_bits, set_bits};
 use crate::datetime::Pcf8523DateTime;
 use crate::registers::*;
