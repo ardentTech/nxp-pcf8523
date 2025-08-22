@@ -4,16 +4,18 @@ RX and TX are handled via I2C, and the module has a fixed address of `0x68`.
 
 ### Usage
 ```rust
+use nxp_pcf8523::Pcf8523;
 use nxp_pcf8523::datetime::Pcf8523DateTime;
-use nxp_pcf8523::driver::Pcf8523;
 
-// TODO configure I2C bus
+// configure I2C bus...
 
 let mut pcf8523 = Pcf8523::new(i2c_bus).unwrap();
-let dt = Pcf8523DateTime::new(0, 0, 0, 19, 8, 25).unwrap();
+// 10:41:13 08.21.2025
+let dt = Pcf8523DateTime::new(10, 41, 13, 8, 21, 25).unwrap();
 pcf8523.set_datetime(dt).unwrap();
 pcf8523.start().unwrap();
 let now = pcf8523.now().unwrap();
+let timestamp = now.timestamp();
 ```
 
 ### Resources

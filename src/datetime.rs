@@ -1,8 +1,9 @@
 use crate::bits::{decode_bcd, encode_bcd};
 
 const DAYS_PER_MONTH: [u8; 12] = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-const SECONDS_FROM_1970_TO_2000: u32 = 946684800; // 00:00:00 01.01.2000
+const SECONDS_FROM_1970_TO_2000: u32 = 946684800;
 
+/// Simple datetime that supports 01.01.2000 to 12.31.2099 (inclusive).
 pub struct Pcf8523DateTime {
     pub seconds: u8,
     pub minutes: u8,
@@ -13,15 +14,22 @@ pub struct Pcf8523DateTime {
 }
 
 impl Pcf8523DateTime {
-    pub fn new(seconds: u8, minutes: u8, hours: u8, day: u8, month: u8, year: u8) -> Option<Pcf8523DateTime> {
+
+    /// Constructs a new datetime instance.
+    /// - `hours` 0..23 (inclusive)
+    /// - `minutes` 0..59 (inclusive)
+    /// - `seconds` 0..59 (inclusive)
+    /// - `month` 1..12 (inclusive)
+    /// - `day` 1..31 (inclusive) is validated against month and year
+    /// - `year` 0..99 (inclusive) offset from the year 2000
+    pub fn new(hours: u8, minutes: u8, seconds: u8, month: u8, day: u8, year: u8) -> Option<Pcf8523DateTime> {
         if !Self::validate_time(seconds, minutes, hours) || !Self::validate_date(day, month, year) {
             return None;
         }
         Some(Self { seconds, minutes, hours, day, month, year })
     }
 
-    // TODO impl as From?
-    pub(crate) fn decode(&self) -> Self {
+    pub(crate) fn bcd_decode(&self) -> Self {
         Self {
             seconds: decode_bcd(self.seconds),
             minutes: decode_bcd(self.minutes),
@@ -32,8 +40,7 @@ impl Pcf8523DateTime {
         }
     }
 
-    // TODO impl as Into?
-    pub(crate) fn encode(&self) -> Self {
+    pub(crate) fn encode_bcd(&self) -> Self {
         Self {
             seconds: encode_bcd(self.seconds),
             minutes: encode_bcd(self.minutes),
@@ -44,6 +51,7 @@ impl Pcf8523DateTime {
         }
     }
 
+    /// Gets a Unix timestamp representation of the datetime.
     pub fn timestamp(&self) -> u32 {
         SECONDS_FROM_1970_TO_2000 + ((self.days_since_2000() * 24 + (self.hours as u32)) * 60 + (self.minutes as u32)) * 60 + (self.seconds as u32)
     }
@@ -83,14 +91,20 @@ mod tests {
     }
 
     #[test]
-    fn timestamp_includes_leap_year_ok() {
-        let dt = Pcf8523DateTime::new(0, 0, 0, 1, 3, 1).unwrap();
+    fn timestamp_one_leap_year_ok() {
+        let dt = Pcf8523DateTime::new(0, 0, 0, 3, 1, 1).unwrap();
         assert_eq!(dt.timestamp(), 983404800);
     }
 
     #[test]
+    fn timestamp_multiple_leap_years_ok() {
+        let dt = Pcf8523DateTime::new( 15, 23, 11,8, 21, 25).unwrap();
+        assert_eq!(dt.timestamp(), 1755789791);
+    }
+
+    #[test]
     fn timestamp_year_end_ok() {
-        let dt = Pcf8523DateTime::new(59, 59, 23, 31, 12, 24).unwrap();
+        let dt = Pcf8523DateTime::new(23, 59, 59, 12, 31, 24).unwrap();
         assert_eq!(dt.timestamp(), 1735689599);
     }
 

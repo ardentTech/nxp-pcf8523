@@ -3,40 +3,49 @@ use crate::bits::{get_bits, set_bits};
 use crate::datetime::Pcf8523DateTime;
 use crate::registers::*;
 
+/// Fixed I2C address of RTC module
 pub const PCF8523_I2C_ADDRESS: u8 = 0x68;
 
 #[derive(Debug, PartialEq)]
 pub enum Pcf8523Error<E> {
     I2C(E)
 }
+
 impl <E> From<E> for Pcf8523Error<E> {
     fn from(e: E) -> Self {
         Pcf8523Error::I2C(e)
     }
 }
 
+/// NXP PCF8523 hardware module driver
+/// - `I2C` HAL I2C bus interface
 #[derive(Debug)]
 pub struct Pcf8523<I2C> {
     i2c: I2C
 }
 
 impl<I2C: I2c> Pcf8523<I2C> {
+
+    /// Constructs a new instance of the module driver.
     pub fn new(i2c: I2C) -> Result<Self, Pcf8523Error<I2C::Error>> {
         let mut peri = Self { i2c };
         peri.i2c.read(PCF8523_I2C_ADDRESS, &mut [0u8])?;
         Ok(peri)
     }
 
+    /// Determines if the module was initialized.
     pub fn initialized(&mut self) -> Result<bool, Pcf8523Error<I2C::Error>> {
         // 0b1110_0000 is the value of PCF8523_CONTROL_3 after a reset
         Ok((self.read_reg(PCF8523_CONTROL_3)? & 0b1110_0000) != 0b1110_0000)
     }
 
+    /// Determines if the module lost power.
     pub fn lost_power(&mut self) -> Result<bool, Pcf8523Error<I2C::Error>> {
         let reg_val = self.read_reg(PCF8523_SECONDS)?;
         Ok((reg_val >> 7) == 1)
     }
 
+    /// Gets the current datetime for the module.
     pub fn now(&mut self) -> Result<Pcf8523DateTime, Pcf8523Error<I2C::Error>> {
         let mut seconds = [0u8];
         let mut minutes = [0u8];
@@ -60,30 +69,36 @@ impl<I2C: I2c> Pcf8523<I2C> {
                 day: day[0],
                 month: month[0],
                 year: year[0],
-            }.decode()
+            }.bcd_decode()
         )
     }
 
+    /// Reads a value from the register.
     pub fn read_reg(&mut self, reg: u8) -> Result<u8, Pcf8523Error<I2C::Error>> {
         let mut buffer = [0u8];
         self.i2c.write_read(PCF8523_I2C_ADDRESS, &[reg], &mut buffer)?;
         Ok(buffer[0])
     }
 
+    /// Performs a software reset.
     pub fn reset(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         self.write_reg(PCF8523_CONTROL_1, 0b101_1000)
     }
 
+    /// Determines if the on-board oscillator is running.
     pub fn running(&mut self) -> Result<bool, Pcf8523Error<I2C::Error>> {
         let reg_val = self.read_reg(PCF8523_CONTROL_1)?;
         Ok(get_bits(reg_val, 1, 5) == 0)
     }
 
+    /// Sets the module datetime in a single I2C transaction.
+    /// - `datetime` datetime to set the module to
     pub fn set_datetime(
         &mut self,
         datetime: Pcf8523DateTime,
     ) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let dt = datetime.encode();
+        let dt = datetime.encode_bcd();
+        // execute all writes in a single transaction to avoid data corruption
         self.i2c.transaction(PCF8523_I2C_ADDRESS, &mut [
             Operation::Write(&[PCF8523_SECONDS, dt.seconds]),
             Operation::Write(&[PCF8523_MINUTES, dt.minutes]),
@@ -97,20 +112,30 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(())
     }
 
+    /// Starts the module (if not already started).
     pub fn start(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
+        // check and toggle OS flag if necessary
         if get_bits(reg_val, 1, 5) == 1 {
             set_bits(&mut reg_val, 0, 5, 0b10_0000);
+            self.write_reg(PCF8523_CONTROL_1, reg_val)?
         }
-        self.write_reg(PCF8523_CONTROL_1, reg_val)
+        Ok(())
     }
 
+    /// Stops the module (if not already stopped).
     pub fn stop(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
-        set_bits(&mut reg_val, 1, 5, 0b10_0000);
-        self.write_reg(PCF8523_CONTROL_1, reg_val)
+        if get_bits(reg_val, 1, 5) == 0 {
+            set_bits(&mut reg_val, 1, 5, 0b10_0000);
+            self.write_reg(PCF8523_CONTROL_1, reg_val)?
+        }
+        Ok(())
     }
 
+    /// Writes a value to a register.
+    /// - `reg` register address
+    /// - `val` value to write
     pub fn write_reg(&mut self, reg: u8, val: u8) -> Result<(), Pcf8523Error<I2C::Error>> {
         Ok(self.i2c.write(PCF8523_I2C_ADDRESS, &[reg, val])?)
     }
