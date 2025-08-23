@@ -56,11 +56,35 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(self.write_reg(PCF8523_CONTROL_1, reg_val)?)
     }
 
-    /// Disables the minute alarm while leaving the minute value intact.
+    /// Disables the hour alarm while leaving the configured hour value intact.
+    pub fn disable_hour_alarm(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_HOUR_ALARM)?;
+        set_bits(&mut reg_val, 1, 7, 0b1000_0000);
+        self.write_reg(PCF8523_HOUR_ALARM, reg_val)?;
+        Ok(())
+    }
+
+    /// Disables the minute alarm while leaving the configured minute value intact.
     pub fn disable_minute_alarm(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_MINUTE_ALARM)?;
-        set_bits(&mut reg_val, 0, 7, 0b1000_0000);
+        set_bits(&mut reg_val, 1, 7, 0b1000_0000);
         self.write_reg(PCF8523_MINUTE_ALARM, reg_val)?;
+        Ok(())
+    }
+
+    /// Disables the day alarm while leaving the configured day value intact.
+    pub fn disable_day_alarm(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_DAY_ALARM)?;
+        set_bits(&mut reg_val, 1, 7, 0b1000_0000);
+        self.write_reg(PCF8523_DAY_ALARM, reg_val)?;
+        Ok(())
+    }
+
+    /// Disables the weekday alarm while leaving the configured weekday value intact.
+    pub fn disable_weekday_alarm(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_WEEKDAY_ALARM)?;
+        set_bits(&mut reg_val, 1, 7, 0b1000_0000);
+        self.write_reg(PCF8523_WEEKDAY_ALARM, reg_val)?;
         Ok(())
     }
 
@@ -71,10 +95,35 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(self.write_reg(PCF8523_CONTROL_1, reg_val)?)
     }
 
+    /// Enables the day alarm.
+    /// - `day` 1..31 (inclusive)
+    pub fn enable_day_alarm(&mut self, day: u8) -> Result<(), Pcf8523Error<I2C::Error>> {
+        if day == 0 || day > 31 { return Err(InvalidArgument) }
+        self.write_reg(PCF8523_DAY_ALARM, (0 << 7) | encode_bcd(day))?;
+        Ok(())
+    }
+
+    /// Enables the weekday alarm.
+    /// - `day` 0..6 (inclusive)
+    pub fn enable_weekday_alarm(&mut self, weekday: u8) -> Result<(), Pcf8523Error<I2C::Error>> {
+        if weekday > 6 { return Err(InvalidArgument) }
+        self.write_reg(PCF8523_WEEKDAY_ALARM, (0 << 7) | weekday)?;
+        Ok(())
+    }
+
+    /// Enables the hour alarm.
+    /// - `hours` 0..23 (inclusive)
+    pub fn enable_hour_alarm(&mut self, hour: u8) -> Result<(), Pcf8523Error<I2C::Error>> {
+        if hour > 23 { return Err(InvalidArgument) }
+        self.write_reg(PCF8523_HOUR_ALARM, (0 << 7) | encode_bcd(hour))?;
+        Ok(())
+    }
+
     /// Enables the minute alarm.
+    /// - `minute` 0..59 (inclusive)
     pub fn enable_minute_alarm(&mut self, minute: u8) -> Result<(), Pcf8523Error<I2C::Error>> {
         if minute > 59 { return Err(InvalidArgument) }
-        self.write_reg(PCF8523_MINUTE_ALARM, (1 << 7) | encode_bcd(minute))?;
+        self.write_reg(PCF8523_MINUTE_ALARM, (0 << 7) | encode_bcd(minute))?;
         Ok(())
     }
 

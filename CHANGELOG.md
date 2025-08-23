@@ -11,8 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Calibration
+- Calibration (i.e. offset)
 - Power management
+- Enable/disable minute, hour, day and weekday alarms
+- Enable/disable alarm interrupt
 
 ## [0.1.0] - 2025-08-22
 
