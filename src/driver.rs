@@ -49,6 +49,14 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(self.write_reg(PCF8523_OFFSET, reg_val)?)
     }
 
+    /// Enables the alarm interrupt.
+    pub fn disable_alarm_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
+        set_bits(&mut reg_val, 0, 1, 0b10);
+        Ok(self.write_reg(PCF8523_CONTROL_1, reg_val)?)
+    }
+
+    /// Disables the minute alarm while leaving the minute value intact.
     pub fn disable_minute_alarm(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_MINUTE_ALARM)?;
         set_bits(&mut reg_val, 0, 7, 0b1000_0000);
@@ -56,6 +64,14 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(())
     }
 
+    /// Enables the alarm interrupt.
+    pub fn enable_alarm_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
+        set_bits(&mut reg_val, 1, 1, 0b10);
+        Ok(self.write_reg(PCF8523_CONTROL_1, reg_val)?)
+    }
+
+    /// Enables the minute alarm.
     pub fn enable_minute_alarm(&mut self, minute: u8) -> Result<(), Pcf8523Error<I2C::Error>> {
         if minute > 59 { return Err(InvalidArgument) }
         self.write_reg(PCF8523_MINUTE_ALARM, (1 << 7) | encode_bcd(minute))?;
