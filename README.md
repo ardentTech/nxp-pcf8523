@@ -35,7 +35,6 @@ From the root dir: `$ cargo test`
 
 ### TODO
 * Interrupts
-* Alarms
 * Timers
 
 ### Resources

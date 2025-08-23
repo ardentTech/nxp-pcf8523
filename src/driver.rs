@@ -1,5 +1,5 @@
 use embedded_hal::i2c::{I2c, Operation};
-use crate::bits::{get_bits, set_bits};
+use crate::bits::{encode_bcd, get_bits, set_bits};
 use crate::datetime::Pcf8523DateTime;
 use crate::driver::Pcf8523Error::InvalidArgument;
 use crate::registers::*;
@@ -47,6 +47,19 @@ impl<I2C: I2c> Pcf8523<I2C> {
         let mut reg_val = (mode as u8) << 7;
         set_bits(&mut reg_val, offset as u8, 0, 0b111_1111);
         Ok(self.write_reg(PCF8523_OFFSET, reg_val)?)
+    }
+
+    pub fn disable_minute_alarm(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_MINUTE_ALARM)?;
+        set_bits(&mut reg_val, 0, 7, 0b1000_0000);
+        self.write_reg(PCF8523_MINUTE_ALARM, reg_val)?;
+        Ok(())
+    }
+
+    pub fn enable_minute_alarm(&mut self, minute: u8) -> Result<(), Pcf8523Error<I2C::Error>> {
+        if minute > 59 { return Err(InvalidArgument) }
+        self.write_reg(PCF8523_MINUTE_ALARM, (1 << 7) | encode_bcd(minute))?;
+        Ok(())
     }
 
     /// Determines if the module was initialized.

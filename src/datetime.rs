@@ -75,6 +75,7 @@ impl Pcf8523DateTime {
         }
     }
 
+    // TODO might need to break these out so they can be reused by alarm methods
     fn validate_time(seconds: u8, minutes: u8, hours: u8) -> bool {
         seconds < 60 && minutes < 60 && hours < 24
     }

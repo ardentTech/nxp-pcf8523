@@ -57,6 +57,43 @@ fn calibrate_offset_slow_ok() {
 }
 
 #[test]
+fn disable_minute_alarm_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_MINUTE_ALARM, 0b1101_1001),
+        i2c_reg_write(PCF8523_MINUTE_ALARM, 0b0101_1001),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    driver.disable_minute_alarm().unwrap();
+    i2c.done();
+}
+
+#[test]
+fn enable_minute_alarm_invalid_arg_err() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec())
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    let err = driver.enable_minute_alarm(60).unwrap_err();
+    assert_eq!(err, InvalidArgument);
+    i2c.done();
+}
+
+#[test]
+fn enable_minute_alarm_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_write(PCF8523_MINUTE_ALARM, 0b1101_1001),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    driver.enable_minute_alarm(59).unwrap();
+    i2c.done();
+}
+
+#[test]
 fn get_datetime_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
