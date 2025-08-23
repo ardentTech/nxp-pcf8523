@@ -3,7 +3,7 @@ use crate::bits::{get_bits, set_bits};
 use crate::datetime::Pcf8523DateTime;
 use crate::driver::Pcf8523Error::InvalidArgument;
 use crate::registers::*;
-use crate::typedefs::CalibrationMode;
+use crate::typedefs::{CalibrationMode, PowerManagement};
 
 /// Fixed I2C address of RTC module
 pub const PCF8523_I2C_ADDRESS: u8 = 0x68;
@@ -122,8 +122,14 @@ impl<I2C: I2c> Pcf8523<I2C> {
             Operation::Write(&[PCF8523_MONTHS, dt.month]),
             Operation::Write(&[PCF8523_YEARS, dt.year]),
         ])?;
-        // enable battery switch-over and low detection function
-        self.write_reg(PCF8523_CONTROL_3, 0b0)?;
+        Ok(())
+    }
+
+    /// Sets the module's power management functions.
+    pub fn set_power_management(&mut self, power_management: PowerManagement) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_3)?;
+        set_bits(&mut reg_val, power_management as u8, 5, 0b1110_0000);
+        self.write_reg(PCF8523_CONTROL_3, reg_val)?;
         Ok(())
     }
 

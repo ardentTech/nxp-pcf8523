@@ -6,6 +6,7 @@ use nxp_pcf8523::driver::{Pcf8523, Pcf8523Error, PCF8523_I2C_ADDRESS};
 use nxp_pcf8523::driver::Pcf8523Error::InvalidArgument;
 use nxp_pcf8523::registers::*;
 use nxp_pcf8523::typedefs::CalibrationMode::{Fast, Slow};
+use nxp_pcf8523::typedefs::PowerManagement;
 
 #[test]
 fn calibrate_offset_below_floor_err() {
@@ -224,7 +225,6 @@ fn set_datetime_ok() {
         i2c_reg_write(PCF8523_MONTHS, 0b1_0000),
         i2c_reg_write(PCF8523_YEARS, 0b100_0101),
         I2cTransaction::transaction_end(PCF8523_I2C_ADDRESS),
-        i2c_reg_write(PCF8523_CONTROL_3, 0b0),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
@@ -237,6 +237,19 @@ fn set_datetime_ok() {
         year: 45,
     };
     driver.set_datetime(dt).unwrap();
+    i2c.done();
+}
+
+#[test]
+fn set_power_management_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_3, 0b0001_1010),
+        i2c_reg_write(PCF8523_CONTROL_3, 0b1001_1010),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    driver.set_power_management(PowerManagement::SwitchOverStandardOnLowDetectionOff).unwrap();
     i2c.done();
 }
 

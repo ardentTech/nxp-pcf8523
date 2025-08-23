@@ -13,14 +13,15 @@ let mut pcf8523 = Pcf8523::new(i2c_bus).unwrap();
 // 1:41:13PM on 08.21.2025
 let dt = Pcf8523DateTime::new(13, 41, 13, 8, 21, 25).unwrap();
 pcf8523.set_datetime(dt).unwrap();
+pcf8523.set_power_management(PowerManagement::SwitchOverStandardOnLowDetectionOn).unwrap();
 pcf8523.start().unwrap();
 let now = pcf8523.now().unwrap();
 let timestamp = now.timestamp();
 ```
 
 ### Example
-The current example uses an [Adafruit Feather RP2040 RFM95](https://www.adafruit.com/product/5714) with an
-[Adalogger FeatherWing RTC + SD](https://www.adafruit.com/product/2922):
+The current example is based upon an [Adafruit Feather RP2040 RFM95](https://www.adafruit.com/product/5714) with an
+[Adalogger FeatherWing RTC + SD](https://www.adafruit.com/product/2922) (which has an on-board PCF8523):
 1. `$ cd examples/rp2040`
 2. `$ cargo build`
 3. Attach RP2040 feather target to host
@@ -35,7 +36,6 @@ From the root dir: `$ cargo test`
 ### TODO
 * Interrupts
 * Alarms
-* Power Management
 * Timers
 
 ### Resources
