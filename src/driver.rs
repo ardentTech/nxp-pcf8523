@@ -1,14 +1,18 @@
 use embedded_hal::i2c::{I2c, Operation};
 use crate::bits::{get_bits, set_bits};
 use crate::datetime::Pcf8523DateTime;
+use crate::driver::Pcf8523Error::InvalidArgument;
 use crate::registers::*;
+use crate::typedefs::CalibrationMode;
 
 /// Fixed I2C address of RTC module
 pub const PCF8523_I2C_ADDRESS: u8 = 0x68;
+const PCF8523_CONTROL_3_DEFAULT: u8 = 0b1110_0000;
 
 #[derive(Debug, PartialEq)]
 pub enum Pcf8523Error<E> {
-    I2C(E)
+    I2C(E),
+    InvalidArgument
 }
 
 impl <E> From<E> for Pcf8523Error<E> {
@@ -33,10 +37,21 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(peri)
     }
 
+    /// Calibrate for aging adjustment, temperature compensation and accuracy tuning.
+    /// - `mode` controls the frequency of correction application
+    /// - `offset` -64..63 (inclusive) correction amount applied via `mode` timing
+    pub fn calibrate(&mut self, mode: CalibrationMode, offset: i8) -> Result<(), Pcf8523Error<I2C::Error>> {
+        if offset < -64 || offset > 63 {
+            return Err(InvalidArgument)
+        }
+        let mut reg_val = (mode as u8) << 7;
+        set_bits(&mut reg_val, offset as u8, 0, 0b111_1111);
+        Ok(self.write_reg(PCF8523_OFFSET, reg_val)?)
+    }
+
     /// Determines if the module was initialized.
     pub fn initialized(&mut self) -> Result<bool, Pcf8523Error<I2C::Error>> {
-        // 0b1110_0000 is the value of PCF8523_CONTROL_3 after a reset
-        Ok((self.read_reg(PCF8523_CONTROL_3)? & 0b1110_0000) != 0b1110_0000)
+        Ok((self.read_reg(PCF8523_CONTROL_3)? & PCF8523_CONTROL_3_DEFAULT) != PCF8523_CONTROL_3_DEFAULT)
     }
 
     /// Determines if the module lost power.
@@ -92,7 +107,7 @@ impl<I2C: I2c> Pcf8523<I2C> {
     }
 
     /// Sets the module datetime in a single I2C transaction.
-    /// - `datetime` datetime to set the module to
+    /// - `datetime` initial module datetime
     pub fn set_datetime(
         &mut self,
         datetime: Pcf8523DateTime,

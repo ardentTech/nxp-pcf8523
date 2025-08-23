@@ -36,7 +36,6 @@ From the root dir: `$ cargo test`
 * Interrupts
 * Alarms
 * Power Management
-* Offsets
 * Timers
 
 ### Resources

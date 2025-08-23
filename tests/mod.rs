@@ -3,7 +3,57 @@ use embedded_hal::i2c::NoAcknowledgeSource::Address;
 use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
 use nxp_pcf8523::datetime::Pcf8523DateTime;
 use nxp_pcf8523::driver::{Pcf8523, Pcf8523Error, PCF8523_I2C_ADDRESS};
+use nxp_pcf8523::driver::Pcf8523Error::InvalidArgument;
 use nxp_pcf8523::registers::*;
+use nxp_pcf8523::typedefs::CalibrationMode::{Fast, Slow};
+
+#[test]
+fn calibrate_offset_below_floor_err() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec())
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    let err = driver.calibrate(Fast, -65).unwrap_err();
+    assert_eq!(err, InvalidArgument);
+    i2c.done();
+}
+
+#[test]
+fn calibrate_offset_above_ceiling_err() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec())
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    let err = driver.calibrate(Fast, 64).unwrap_err();
+    assert_eq!(err, InvalidArgument);
+    i2c.done();
+}
+
+#[test]
+fn calibrate_offset_fast_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_write(PCF8523_OFFSET, 0b1000_1111),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    driver.calibrate(Fast, 15).unwrap();
+    i2c.done();
+}
+
+#[test]
+fn calibrate_offset_slow_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_write(PCF8523_OFFSET, 0b0111_0001),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    driver.calibrate(Slow, -15).unwrap();
+    i2c.done();
+}
 
 #[test]
 fn get_datetime_ok() {
