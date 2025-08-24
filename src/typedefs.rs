@@ -1,4 +1,4 @@
-pub enum CalibrationMode {
+pub enum CorrectionMode {
     /// Correction is triggered every minute for faster adjustment but more power consumption.
     /// Pulses are then applied once per second.
     Fast = 0x1,

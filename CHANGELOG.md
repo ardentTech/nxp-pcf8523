@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Enable/disable correction interrupt
+
 ## [0.2.0] - 2025-08-23
 
 ### Added
