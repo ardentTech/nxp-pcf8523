@@ -49,6 +49,13 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(self.write_reg(PCF8523_OFFSET, reg_val)?)
     }
 
+    /// Clears the second interrupt.
+    pub fn clear_second_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
+        set_bits(&mut reg_val, 0, 4, 0b1_0000);
+        Ok(self.write_reg(PCF8523_CONTROL_2, reg_val)?)
+    }
+
     /// Disables the alarm interrupt.
     pub fn disable_alarm_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
@@ -56,7 +63,7 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(self.write_reg(PCF8523_CONTROL_1, reg_val)?)
     }
 
-    /// Disables the alarm interrupt.
+    /// Disables the correction interrupt.
     pub fn disable_correction_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
         set_bits(&mut reg_val, 0, 0, 0b1);
@@ -85,6 +92,13 @@ impl<I2C: I2c> Pcf8523<I2C> {
         set_bits(&mut reg_val, 1, 7, 0b1000_0000);
         self.write_reg(PCF8523_MINUTE_ALARM, reg_val)?;
         Ok(())
+    }
+
+    /// Disables the second interrupt.
+    pub fn disable_second_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
+        set_bits(&mut reg_val, 0, 2, 0b100);
+        Ok(self.write_reg(PCF8523_CONTROL_1, reg_val)?)
     }
 
     /// Disables the weekday alarm while leaving the configured weekday value intact.
@@ -131,6 +145,13 @@ impl<I2C: I2c> Pcf8523<I2C> {
         if minute > 59 { return Err(InvalidArgument) }
         self.write_reg(PCF8523_MINUTE_ALARM, (0 << 7) | encode_bcd(minute))?;
         Ok(())
+    }
+
+    /// Enables the second interrupt.
+    pub fn enable_second_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
+        set_bits(&mut reg_val, 1, 2, 0b100);
+        Ok(self.write_reg(PCF8523_CONTROL_1, reg_val)?)
     }
 
     /// Enables the weekday alarm.

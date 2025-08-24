@@ -57,6 +57,19 @@ fn calibrate_offset_slow_ok() {
 }
 
 #[test]
+fn clear_second_interrupt_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_2, 0b0011_0011),
+        i2c_reg_write(PCF8523_CONTROL_2, 0b0010_0011),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    driver.clear_second_interrupt().unwrap();
+    i2c.done();
+}
+
+#[test]
 fn disable_alarm_interrupt_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
@@ -118,6 +131,19 @@ fn disable_minute_alarm_ok() {
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
     driver.disable_minute_alarm().unwrap();
+    i2c.done();
+}
+
+#[test]
+fn disable_second_interrupt_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0010_0100),
+        i2c_reg_write(PCF8523_CONTROL_1, 0b0010_0000),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    driver.disable_second_interrupt().unwrap();
     i2c.done();
 }
 
@@ -193,6 +219,19 @@ fn enable_day_alarm_ok() {
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
     driver.enable_day_alarm(13).unwrap();
+    i2c.done();
+}
+
+#[test]
+fn enable_second_interrupt_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0010_0011),
+        i2c_reg_write(PCF8523_CONTROL_1, 0b0010_0111),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    driver.enable_second_interrupt().unwrap();
     i2c.done();
 }
 
