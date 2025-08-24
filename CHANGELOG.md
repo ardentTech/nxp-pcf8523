@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enable/disable correction interrupt
 - Enable/disable/clear second interrupt
 - Clear alarm interrupt
+- Enable second interrupt as pulsed or permanent
 
 ## [0.2.0] - 2025-08-23
 

@@ -155,10 +155,15 @@ impl<I2C: I2c> Pcf8523<I2C> {
     }
 
     /// Enables the second interrupt.
-    pub fn enable_second_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
-        set_bits(&mut reg_val, 1, 2, 0b100);
-        Ok(self.write_reg(PCF8523_CONTROL_1, reg_val)?)
+    /// - `pulsed` configures the interrupt as pulsed or permanently active
+    pub fn enable_second_interrupt(&mut self, pulsed: bool) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut control_1 = self.read_reg(PCF8523_CONTROL_1)?;
+        set_bits(&mut control_1, 1, 2, 0b100);
+        self.write_reg(PCF8523_CONTROL_1, control_1)?;
+
+        let mut clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
+        set_bits(&mut clkout_ctrl, pulsed as u8, 7, 0b1000_0000);
+        Ok(self.write_reg(PCF8523_TMR_CLKOUT_CTRL, clkout_ctrl)?)
     }
 
     /// Enables the weekday alarm.
@@ -226,14 +231,13 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(get_bits(reg_val, 1, 5) == 0)
     }
 
-    /// Sets the module datetime in a single I2C transaction.
+    /// Sets the module datetime in a single I2C transaction to avoid data corruption.
     /// - `datetime` initial module datetime
     pub fn set_datetime(
         &mut self,
         datetime: Pcf8523DateTime,
     ) -> Result<(), Pcf8523Error<I2C::Error>> {
         let dt = datetime.encode_bcd();
-        // execute all writes in a single transaction to avoid data corruption
         self.i2c.transaction(PCF8523_I2C_ADDRESS, &mut [
             Operation::Write(&[PCF8523_SECONDS, dt.seconds]),
             Operation::Write(&[PCF8523_MINUTES, dt.minutes]),
