@@ -49,6 +49,13 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(self.write_reg(PCF8523_OFFSET, reg_val)?)
     }
 
+    /// Clears the alarm interrupt.
+    pub fn clear_alarm_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
+        set_bits(&mut reg_val, 0, 3, 0b1000);
+        Ok(self.write_reg(PCF8523_CONTROL_2, reg_val)?)
+    }
+
     /// Clears the second interrupt.
     pub fn clear_second_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
