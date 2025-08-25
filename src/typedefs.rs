@@ -27,3 +27,32 @@ pub enum PowerManagement {
     /// detection function is disabled.
     SwitchOverOffLowDetectionOff = 0x7
 }
+
+pub enum PermanentlyActiveInterrupt {
+    Frequency4096Hz = 0x0,
+    Frequency64Hz = 0x1,
+    Frequency1Hz = 0x2,
+    Frequency1_60Hz = 0x3,
+    Frequency1_3600Hz = 0x4
+}
+
+pub enum PulsedInterrupt {
+    Width46_875ms = 0x0,
+    Width62_500ms = 0x1,
+    Width78_125ms = 0x2,
+    Width93_750ms = 0x3,
+    Width125ms = 0x4,
+    Width156_250ms = 0x5,
+    Width187_500ms = 0x6,
+    Width218_750ms = 0x7,
+}
+
+pub enum InterruptMode {
+    PermanentlyActive(PermanentlyActiveInterrupt),
+    Pulsed(PulsedInterrupt)
+}
+
+pub struct TimerB {
+    pub interrupt: Option<InterruptMode>,
+    pub value: u8
+}

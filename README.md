@@ -1,13 +1,14 @@
 # NXP PCF8523
-`#![no_std]` driver for the NXP PCF8523 RTC and calendar module built on top of the Rust [embedded-hal](https://github.com/rust-embedded/embedded-hal).
-RX and TX are handled via I2C, and the module has a fixed address of `0x68`.
+`#![no_std]` driver for the NXP PCF8523 RTC and calendar module built on top of the Rust [embedded-hal](https://github.com/rust-embedded/embedded-hal). Supported
+I2C modes include standard (100 kHz), fast (400 kHz) and fast+ (1000 kHz), and the module has a fixed I2C address of
+`0x68`.
 
 ### Usage
 ```rust
 use nxp_pcf8523::Pcf8523;
 use nxp_pcf8523::datetime::Pcf8523DateTime;
 
-// configure I2C bus...
+// configure I2C bus at 100, 400 or 1_000 kHz...
 
 let mut pcf8523 = Pcf8523::new(i2c_bus).unwrap();
 // 1:41:13PM on 08.21.2025
@@ -34,8 +35,7 @@ The current example is based upon an [Adafruit Feather RP2040 RFM95](https://www
 From the root dir: `$ cargo test`
 
 ### TODO
-* Watchdog timer
-* Countdown timers
+* Timer A
 
 ### Resources
 [Datasheet](www.nxp.com/docs/en/data-sheet/PCF8523.pdf)

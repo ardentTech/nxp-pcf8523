@@ -3,7 +3,7 @@ use crate::bits::{encode_bcd, get_bits, set_bits};
 use crate::datetime::Pcf8523DateTime;
 use crate::driver::Pcf8523Error::InvalidArgument;
 use crate::registers::*;
-use crate::typedefs::{CorrectionMode, PowerManagement};
+use crate::typedefs::{CorrectionMode, InterruptMode, PowerManagement, TimerB};
 
 /// Fixed I2C address of RTC module
 pub const PCF8523_I2C_ADDRESS: u8 = 0x68;
@@ -166,6 +166,46 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(self.write_reg(PCF8523_TMR_CLKOUT_CTRL, clkout_ctrl)?)
     }
 
+    /// Clears the Timer B interrupt.
+    pub fn clear_timer_b_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
+        set_bits(&mut reg_val, 0b1_1011, 3, 0b1111_1000);
+        Ok(self.write_reg(PCF8523_CONTROL_2, reg_val)?)
+    }
+
+    /// Configures Timer B by setting the countdown `value`. If an `interrupt` is specified, its
+    /// mode and frequency are set, and then it is enabled.
+    pub fn configure_timer_b(&mut self, config: TimerB) -> Result<(), Pcf8523Error<I2C::Error>> {
+        if let Some(mode) = config.interrupt {
+            self.set_timer_b_interrupt_mode(mode)?;
+            self.enable_timer_b_interrupt()?;
+        }
+        Ok(self.write_reg(PCF8523_TMR_B_REG, config.value)?)
+    }
+
+    /// Enables the Timer B interrupt.
+    pub fn enable_timer_b_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
+        set_bits(&mut reg_val, 1, 0, 0b1);
+        Ok(self.write_reg(PCF8523_CONTROL_2, reg_val)?)
+    }
+
+    /// Starts Timer B.
+    pub fn start_timer_b(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        self.toggle_timer_b(true)
+    }
+
+    /// Stops Timer B
+    pub fn stop_timer_b(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        self.toggle_timer_b(false)
+    }
+
+    fn toggle_timer_b(&mut self, start: bool) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
+        set_bits(&mut reg_val, start as u8, 0, 0b1);
+        Ok(self.write_reg(PCF8523_TMR_CLKOUT_CTRL, reg_val)?)
+    }
+
     /// Enables the weekday alarm.
     /// - `weekday` 0..6 (inclusive)
     pub fn enable_weekday_alarm(&mut self, weekday: u8) -> Result<(), Pcf8523Error<I2C::Error>> {
@@ -233,10 +273,7 @@ impl<I2C: I2c> Pcf8523<I2C> {
 
     /// Sets the module datetime in a single I2C transaction to avoid data corruption.
     /// - `datetime` initial module datetime
-    pub fn set_datetime(
-        &mut self,
-        datetime: Pcf8523DateTime,
-    ) -> Result<(), Pcf8523Error<I2C::Error>> {
+    pub fn set_datetime(&mut self, datetime: Pcf8523DateTime) -> Result<(), Pcf8523Error<I2C::Error>> {
         let dt = datetime.encode_bcd();
         self.i2c.transaction(PCF8523_I2C_ADDRESS, &mut [
             Operation::Write(&[PCF8523_SECONDS, dt.seconds]),
@@ -257,10 +294,24 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(())
     }
 
+    /// Sets the interrupt mode for Timer B.
+    /// - `mode` interrupt mode and frequency
+    pub fn set_timer_b_interrupt_mode(&mut self, mode: InterruptMode) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let (mode_bit, frequency) = match mode {
+            InterruptMode::PermanentlyActive(freq) => (0, freq as u8),
+            InterruptMode::Pulsed(width) => (1, (width as u8) << 4)
+        };
+        let mut reg_val = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
+        set_bits(&mut reg_val, mode_bit, 6, 0b100_0000);
+        Ok(self.i2c.transaction(PCF8523_I2C_ADDRESS, &mut [
+            Operation::Write(&[PCF8523_TMR_B_FREQ_CTRL, frequency]),
+            Operation::Write(&[PCF8523_TMR_CLKOUT_CTRL, reg_val])
+        ])?)
+    }
+
     /// Starts the module (if not already started).
     pub fn start(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
-        // check and toggle OS flag if necessary
         if get_bits(reg_val, 1, 5) == 1 {
             set_bits(&mut reg_val, 0, 5, 0b10_0000);
             self.write_reg(PCF8523_CONTROL_1, reg_val)?
