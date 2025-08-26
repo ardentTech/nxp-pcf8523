@@ -52,14 +52,21 @@ impl<I2C: I2c> Pcf8523<I2C> {
     /// Clears the alarm interrupt.
     pub fn clear_alarm_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
-        set_bits(&mut reg_val, 0, 3, 0b1000);
+        set_bits(&mut reg_val, 0b0_1110, 3, 0b1111_1000);
         Ok(self.write_reg(PCF8523_CONTROL_2, reg_val)?)
     }
 
     /// Clears the second interrupt.
     pub fn clear_second_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
-        set_bits(&mut reg_val, 0, 4, 0b1_0000);
+        set_bits(&mut reg_val, 0b0_1101, 3, 0b1111_1000);
+        Ok(self.write_reg(PCF8523_CONTROL_2, reg_val)?)
+    }
+
+    /// Clears the Timer B interrupt.
+    pub fn clear_timer_b_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
+        set_bits(&mut reg_val, 0b0_1011, 3, 0b1111_1000);
         Ok(self.write_reg(PCF8523_CONTROL_2, reg_val)?)
     }
 
@@ -164,13 +171,6 @@ impl<I2C: I2c> Pcf8523<I2C> {
         let mut clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
         set_bits(&mut clkout_ctrl, pulsed as u8, 7, 0b1000_0000);
         Ok(self.write_reg(PCF8523_TMR_CLKOUT_CTRL, clkout_ctrl)?)
-    }
-
-    /// Clears the Timer B interrupt.
-    pub fn clear_timer_b_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
-        set_bits(&mut reg_val, 0b1_1011, 3, 0b1111_1000);
-        Ok(self.write_reg(PCF8523_CONTROL_2, reg_val)?)
     }
 
     /// Configures Timer B by setting the countdown `value`. If an `interrupt` is specified, its

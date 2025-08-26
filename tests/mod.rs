@@ -63,7 +63,7 @@ fn clear_alarm_interrupt_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
         i2c_reg_read(PCF8523_CONTROL_2, 0b0010_1011),
-        i2c_reg_write(PCF8523_CONTROL_2, 0b0010_0011),
+        i2c_reg_write(PCF8523_CONTROL_2, 0b0111_0011),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
@@ -75,8 +75,8 @@ fn clear_alarm_interrupt_ok() {
 fn clear_second_interrupt_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
-        i2c_reg_read(PCF8523_CONTROL_2, 0b0011_0011),
-        i2c_reg_write(PCF8523_CONTROL_2, 0b0010_0011),
+        i2c_reg_read(PCF8523_CONTROL_2, 0b0111_0011),
+        i2c_reg_write(PCF8523_CONTROL_2, 0b0110_1011),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
@@ -89,7 +89,7 @@ fn clear_timer_b_interrupt_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
         i2c_reg_read(PCF8523_CONTROL_2, 0b0111_0011),
-        i2c_reg_write(PCF8523_CONTROL_2, 0b1101_1011),
+        i2c_reg_write(PCF8523_CONTROL_2, 0b0101_1011),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
