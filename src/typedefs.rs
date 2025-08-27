@@ -28,7 +28,7 @@ pub enum PowerManagement {
     SwitchOverOffLowDetectionOff = 0x7
 }
 
-pub enum PermanentlyActiveInterrupt {
+pub enum TimerSourceClock {
     Frequency4096Hz = 0x0,
     Frequency64Hz = 0x1,
     Frequency1Hz = 0x2,
@@ -48,11 +48,38 @@ pub enum PulsedInterrupt {
 }
 
 pub enum InterruptMode {
-    PermanentlyActive(PermanentlyActiveInterrupt),
+    PermanentlyActive(TimerSourceClock),
     Pulsed(PulsedInterrupt)
+}
+impl From<InterruptMode> for u8 {
+    fn from(value: InterruptMode) -> Self {
+        match value {
+            InterruptMode::PermanentlyActive(_) => 0x0,
+            InterruptMode::Pulsed(_) => 0x1
+        }
+    }
 }
 
 pub struct TimerB {
     pub interrupt: Option<InterruptMode>,
+    pub value: u8
+}
+
+pub enum TimerAMode {
+    Countdown,
+    Watchdog(TimerSourceClock)
+}
+impl From<TimerAMode> for u8 {
+    fn from(value: TimerAMode) -> Self {
+        match value {
+            TimerAMode::Countdown => 0x1,
+            TimerAMode::Watchdog(_) => 0x2
+        }
+    }
+}
+
+pub struct TimerA {
+    pub interrupt: InterruptMode,
+    pub mode: TimerAMode,
     pub value: u8
 }
