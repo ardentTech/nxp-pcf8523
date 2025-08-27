@@ -61,7 +61,7 @@ impl From<InterruptMode> for u8 {
 }
 
 pub struct TimerB {
-    pub interrupt: Option<InterruptMode>,
+    pub interrupt: InterruptMode,
     pub value: u8
 }
 

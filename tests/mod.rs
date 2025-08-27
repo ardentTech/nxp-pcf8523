@@ -132,7 +132,6 @@ fn configure_timer_a_ok() {
         i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b1001_1100),
         i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b0001_1100),
         i2c_reg_write(PCF8523_TMR_A_REG, 0b110),
-
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
@@ -146,19 +145,6 @@ fn configure_timer_a_ok() {
 }
 
 #[test]
-fn configure_timer_b_interrupt_none_ok() {
-    let expectations = [
-        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
-        i2c_reg_write(PCF8523_TMR_B_REG, 0b0000_1101),
-    ];
-    let mut i2c = I2cMock::new(&expectations);
-    let mut driver = Pcf8523::new(&mut i2c).unwrap();
-    let config = TimerB { interrupt: None, value: 13 };
-    driver.configure_timer_b(config).unwrap();
-    i2c.done();
-}
-
-#[test]
 fn configure_timer_b_interrupt_permanently_active_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
@@ -167,13 +153,11 @@ fn configure_timer_b_interrupt_permanently_active_ok() {
         I2cTransaction::write(PCF8523_I2C_ADDRESS, [PCF8523_TMR_B_FREQ_CTRL, 0b10].to_vec()),
         I2cTransaction::write(PCF8523_I2C_ADDRESS, [PCF8523_TMR_CLKOUT_CTRL, 0b010_0010].to_vec()),
         I2cTransaction::transaction_end(PCF8523_I2C_ADDRESS),
-        i2c_reg_read(PCF8523_CONTROL_2, 0b0010_0000),
-        i2c_reg_write(PCF8523_CONTROL_2, 0b0010_0001),
         i2c_reg_write(PCF8523_TMR_B_REG, 0b0001_0111),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
-    let config = TimerB { interrupt: Some(PermanentlyActive(Frequency1Hz)), value: 23 };
+    let config = TimerB { interrupt: PermanentlyActive(Frequency1Hz), value: 23 };
     driver.configure_timer_b(config).unwrap();
     i2c.done();
 }
@@ -187,13 +171,11 @@ fn configure_timer_b_interrupt_pulsed_ok() {
         I2cTransaction::write(PCF8523_I2C_ADDRESS, [PCF8523_TMR_B_FREQ_CTRL, 0b10_0000].to_vec()),
         I2cTransaction::write(PCF8523_I2C_ADDRESS, [PCF8523_TMR_CLKOUT_CTRL, 0b110_0010].to_vec()),
         I2cTransaction::transaction_end(PCF8523_I2C_ADDRESS),
-        i2c_reg_read(PCF8523_CONTROL_2, 0b0010_0000),
-        i2c_reg_write(PCF8523_CONTROL_2, 0b0010_0001),
         i2c_reg_write(PCF8523_TMR_B_REG, 0b0001_0111),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
-    let config = TimerB { interrupt: Some(Pulsed(PulsedInterrupt::Width78_125ms)), value: 23 };
+    let config = TimerB { interrupt: Pulsed(PulsedInterrupt::Width78_125ms), value: 23 };
     driver.configure_timer_b(config).unwrap();
     i2c.done();
 }

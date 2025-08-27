@@ -203,13 +203,9 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(self.write_reg(PCF8523_TMR_A_REG, config.value)?)
     }
 
-    /// Configures Timer B by setting the countdown `value`. If an `interrupt` is specified, its
-    /// mode and frequency are set, and then it is enabled.
+    /// Configures Timer B by setting the countdown `value` and the `interrupt` mode.
     pub fn configure_timer_b(&mut self, config: TimerB) -> Result<(), Pcf8523Error<I2C::Error>> {
-        if let Some(mode) = config.interrupt {
-            self.set_timer_b_interrupt_mode(mode)?;
-            self.enable_timer_b_interrupt()?;
-        }
+        self.set_timer_b_interrupt_mode(config.interrupt)?;
         Ok(self.write_reg(PCF8523_TMR_B_REG, config.value)?)
     }
 
