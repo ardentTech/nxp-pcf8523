@@ -60,26 +60,15 @@ impl From<InterruptMode> for u8 {
     }
 }
 
-pub struct TimerB {
-    pub interrupt: InterruptMode,
-    pub value: u8
-}
-
-pub enum TimerAMode {
+pub enum TimerMode {
     Countdown,
     Watchdog(TimerSourceClock)
 }
-impl From<TimerAMode> for u8 {
-    fn from(value: TimerAMode) -> Self {
+impl From<TimerMode> for u8 {
+    fn from(value: TimerMode) -> Self {
         match value {
-            TimerAMode::Countdown => 0x1,
-            TimerAMode::Watchdog(_) => 0x2
+            TimerMode::Countdown => 0x1,
+            TimerMode::Watchdog(_) => 0x2
         }
     }
-}
-
-pub struct TimerA {
-    pub interrupt: InterruptMode,
-    pub mode: TimerAMode,
-    pub value: u8
 }
