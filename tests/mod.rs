@@ -6,10 +6,10 @@ use nxp_pcf8523::driver::{Pcf8523, Pcf8523Error, PCF8523_I2C_ADDRESS};
 use nxp_pcf8523::driver::Pcf8523Error::InvalidArgument;
 use nxp_pcf8523::registers::*;
 use nxp_pcf8523::typedefs::CorrectionMode::{Fast, Slow};
-use nxp_pcf8523::typedefs::{InterruptMode, PowerManagement, LowPulseWidth, TimerMode, TimerSourceClock, TimerB, TimerA};
-use nxp_pcf8523::typedefs::InterruptMode::{PermanentlyActive, Pulsed};
-use nxp_pcf8523::typedefs::TimerSourceClock::{Frequency1Hz, Frequency1_3600Hz, Frequency1_60Hz, Frequency4096Hz};
-use nxp_pcf8523::typedefs::LowPulseWidth::{Width218_750ms, Width93_750ms};
+use nxp_pcf8523::typedefs::{PowerManagement, TimerB, TimerA, TimerBInterruptMode};
+use nxp_pcf8523::typedefs::TimerSourceClock::{Frequency1Hz, Frequency1_60Hz};
+use nxp_pcf8523::typedefs::LowPulseWidth::Width93_750ms;
+use nxp_pcf8523::typedefs::TimerAInterruptMode::{PermanentlyActive, Pulsed};
 use nxp_pcf8523::typedefs::TimerMode::{Countdown, Watchdog};
 
 #[test]
@@ -736,7 +736,7 @@ fn start_timer_a_countdown_invalid_timer_countdown_err() {
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
     let timer = TimerA {
         countdown: 0,
-        interrupt_mode: Pulsed(Width93_750ms),
+        interrupt_mode: Pulsed,
         mode: Countdown,
         source_clock: Frequency1_60Hz,
     };
@@ -760,7 +760,7 @@ fn start_timer_a_countdown_already_running_ok() {
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
     let timer = TimerA {
         countdown: 13,
-        interrupt_mode: Pulsed(Width93_750ms),
+        interrupt_mode: Pulsed,
         mode: Countdown,
         source_clock: Frequency1_60Hz,
     };
@@ -783,7 +783,7 @@ fn start_timer_a_countdown_not_running_ok() {
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
     let timer = TimerA {
         countdown: 13,
-        interrupt_mode: Pulsed(Width93_750ms),
+        interrupt_mode: Pulsed,
         mode: Countdown,
         source_clock: Frequency1_60Hz,
     };
@@ -861,7 +861,7 @@ fn start_timer_b_ok() {
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
     let timer_b = TimerB {
         countdown: 7,
-        interrupt_mode: Pulsed(LowPulseWidth::Width93_750ms),
+        interrupt_mode: TimerBInterruptMode::Pulsed(Width93_750ms),
         source_clock: Frequency1Hz,
     };
     driver.start_timer_b(timer_b).unwrap();

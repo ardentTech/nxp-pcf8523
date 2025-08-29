@@ -50,15 +50,29 @@ pub enum LowPulseWidth {
 }
 
 #[derive(Copy, Clone)]
-pub enum InterruptMode {
+pub enum TimerAInterruptMode {
+    PermanentlyActive,
+    Pulsed
+}
+impl From<TimerAInterruptMode> for u8 {
+    fn from(value: TimerAInterruptMode) -> Self {
+        match value {
+            TimerAInterruptMode::PermanentlyActive => 0x0,
+            TimerAInterruptMode::Pulsed => 0x1
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub enum TimerBInterruptMode {
     PermanentlyActive,
     Pulsed(LowPulseWidth)
 }
-impl From<InterruptMode> for u8 {
-    fn from(value: InterruptMode) -> Self {
+impl From<TimerBInterruptMode> for u8 {
+    fn from(value: TimerBInterruptMode) -> Self {
         match value {
-            InterruptMode::PermanentlyActive => 0x0,
-            InterruptMode::Pulsed(_) => 0x1
+            TimerBInterruptMode::PermanentlyActive => 0x0,
+            TimerBInterruptMode::Pulsed(_) => 0x1
         }
     }
 }
@@ -79,13 +93,13 @@ impl From<TimerMode> for u8 {
 
 pub struct TimerA {
     pub countdown: u8,
-    pub interrupt_mode: InterruptMode,
+    pub interrupt_mode: TimerAInterruptMode,
     pub mode: TimerMode,
     pub source_clock: TimerSourceClock,
 }
 
 pub struct TimerB {
     pub countdown: u8,
-    pub interrupt_mode: InterruptMode,
+    pub interrupt_mode: TimerBInterruptMode,
     pub source_clock: TimerSourceClock,
 }
