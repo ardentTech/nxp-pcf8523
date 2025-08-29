@@ -3,7 +3,7 @@ use crate::bits::{encode_bcd, get_bits, set_bits};
 use crate::datetime::Pcf8523DateTime;
 use crate::driver::Pcf8523Error::InvalidArgument;
 use crate::registers::*;
-use crate::typedefs::{CorrectionMode, InterruptMode, PowerManagement, TimerMode};
+use crate::typedefs::{CorrectionMode, InterruptMode, PowerManagement, TimerB, TimerMode};
 
 /// Fixed I2C address of RTC module
 pub const PCF8523_I2C_ADDRESS: u8 = 0x68;
@@ -12,7 +12,8 @@ const PCF8523_CONTROL_3_DEFAULT: u8 = 0b1110_0000;
 #[derive(Debug, PartialEq)]
 pub enum Pcf8523Error<E> {
     I2C(E),
-    InvalidArgument
+    InvalidArgument,
+    InconsistentTimerCounter,
 }
 
 impl <E> From<E> for Pcf8523Error<E> {
@@ -218,17 +219,10 @@ impl<I2C: I2c> Pcf8523<I2C> {
     }
 
     /// Enables the Timer B interrupt.
-    // TODO who should call this?
     pub fn enable_timer_b_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
         set_bits(&mut reg_val, 1, 0, 0b1);
         Ok(self.write_reg(PCF8523_CONTROL_2, reg_val)?)
-    }
-
-    fn toggle_timer_b(&mut self, start: bool) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let mut reg_val = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
-        set_bits(&mut reg_val, start as u8, 0, 0b1);
-        Ok(self.write_reg(PCF8523_TMR_CLKOUT_CTRL, reg_val)?)
     }
 
     /// Enables the weekday alarm.
@@ -338,21 +332,6 @@ impl<I2C: I2c> Pcf8523<I2C> {
         self.write_reg(PCF8523_TMR_CLKOUT_CTRL, reg_val)
     }
 
-    /// Sets the interrupt mode for Timer B.
-    /// - `mode` interrupt mode and associated frequency
-    pub fn set_timer_b_interrupt_mode(&mut self, mode: InterruptMode) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let (mode_bit, frequency) = match mode {
-            InterruptMode::PermanentlyActive(freq) => (0, freq as u8),
-            InterruptMode::Pulsed(width) => (1, (width as u8) << 4)
-        };
-        let mut reg_val = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
-        set_bits(&mut reg_val, mode_bit, 6, 0b100_0000);
-        Ok(self.i2c.transaction(PCF8523_I2C_ADDRESS, &mut [
-            Operation::Write(&[PCF8523_TMR_B_FREQ_CTRL, frequency]),
-            Operation::Write(&[PCF8523_TMR_CLKOUT_CTRL, reg_val])
-        ])?)
-    }
-
     /// Starts the module, if not already started.
     pub fn start(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
@@ -368,20 +347,46 @@ impl<I2C: I2c> Pcf8523<I2C> {
     /// - `timer_mode` countdown or watchdog
     /// - `interrupt_mode` interrupt mode and associated frequency
     pub fn start_timer_a(&mut self, counter: u8, timer_mode: TimerMode, interrupt_mode: InterruptMode) -> Result<(), Pcf8523Error<I2C::Error>> {
-        // TODO all of this should happen in a transaction
+        // TODO should all of this happen in a transaction?
         self.set_timer_a_mode(timer_mode)?;
         self.set_timer_a_interrupt_mode(interrupt_mode)?;
         self.write_reg(PCF8523_TMR_A_REG, counter)
     }
 
     /// Starts Timer B, which only supports countdown timer mode.
-    /// - `counter` value to count down from
-    /// - `interrupt_mode` interrupt mode and associated frequency
-    pub fn start_timer_b(&mut self, counter: u8, interrupt_mode: InterruptMode) -> Result<(), Pcf8523Error<I2C::Error>> {
-        // TODO all of this should happen in a transaction
-        self.set_timer_b_interrupt_mode(interrupt_mode)?;
-        self.write_reg(PCF8523_TMR_B_REG, counter)?;
-        self.toggle_timer_b(true)
+    /// - `timer` TimerB configuration
+    pub fn start_timer_b(&mut self, timer: TimerB) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut tmr_b_freq_ctrl = self.read_reg(PCF8523_TMR_B_FREQ_CTRL)?;
+
+        // set timer frequency
+        set_bits(&mut tmr_b_freq_ctrl, timer.source_clock as u8, 0, 0b111);
+
+        match timer.interrupt_mode {
+            // if pulsed interrupt, set low pulse width
+            InterruptMode::Pulsed(width) => {
+                set_bits(&mut tmr_b_freq_ctrl, width as u8, 4, 0b111_0000);
+            },
+            _ => {}
+        }
+        self.write_reg(PCF8523_TMR_B_FREQ_CTRL, tmr_b_freq_ctrl)?;
+
+        self.enable_timer_b_interrupt()?;
+
+        let mut tmr_clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
+        // set interrupt mode
+        set_bits(&mut tmr_clkout_ctrl, timer.interrupt_mode.into(), 6, 0b100_0000);
+
+        // disable timer (if enabled)
+        if get_bits(tmr_clkout_ctrl, 1, 0) == 1 {
+            set_bits(&mut tmr_clkout_ctrl, 0, 0, 0b1);
+            self.write_reg(PCF8523_TMR_CLKOUT_CTRL, tmr_clkout_ctrl)?;
+        }
+        // set countdown val
+        self.write_reg(PCF8523_TMR_B_REG, timer.countdown)?;
+
+        // enable timer
+        set_bits(&mut tmr_clkout_ctrl, 1, 0, 0b1);
+        self.write_reg(PCF8523_TMR_CLKOUT_CTRL, tmr_clkout_ctrl)
     }
 
     /// Stops the module, if not already stopped.
@@ -394,14 +399,25 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(())
     }
 
-    /// Stops Timer A, whether in countdown or watchdog mode.
+    /// Stops Timer A.
     pub fn stop_timer_a(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         self.write_reg(PCF8523_TMR_A_REG, 0)
     }
 
     /// Stops Timer B.
     pub fn stop_timer_b(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
-        self.toggle_timer_b(false)
+        let mut reg_val = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
+        set_bits(&mut reg_val, 0, 0, 0b1);
+        Ok(self.write_reg(PCF8523_TMR_CLKOUT_CTRL, reg_val)?)
+    }
+
+    /// Gets the Timer B counter. This is the current value, and not the TimerB.countdown value that
+    /// Timer B counts down from each period. As the timer cannot be frozen during the read, it's
+    /// read twice and compared for equality.
+    pub fn timer_b_counter(&mut self) -> Result<u8, Pcf8523Error<I2C::Error>> {
+        let a = self.read_reg(PCF8523_TMR_B_REG)?;
+        let b = self.read_reg(PCF8523_TMR_B_REG)?;
+        if a == b { Ok(a) } else { Err(Pcf8523Error::InconsistentTimerCounter) }
     }
 
     /// Writes a value to a register.
