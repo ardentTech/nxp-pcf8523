@@ -28,6 +28,7 @@ pub enum PowerManagement {
     SwitchOverOffLowDetectionOff = 0x7
 }
 
+#[derive(Copy, Clone)]
 pub enum TimerSourceClock {
     Frequency4096Hz = 0x0,
     Frequency64Hz = 0x1,
@@ -62,17 +63,25 @@ impl From<InterruptMode> for u8 {
     }
 }
 
+#[derive(Copy, Clone)]
 pub enum TimerMode {
     Countdown,
-    Watchdog(TimerSourceClock)
+    Watchdog
 }
 impl From<TimerMode> for u8 {
     fn from(value: TimerMode) -> Self {
         match value {
             TimerMode::Countdown => 0x1,
-            TimerMode::Watchdog(_) => 0x2
+            TimerMode::Watchdog => 0x2
         }
     }
+}
+
+pub struct TimerA {
+    pub countdown: u8,
+    pub interrupt_mode: InterruptMode,
+    pub mode: TimerMode,
+    pub source_clock: TimerSourceClock,
 }
 
 pub struct TimerB {

@@ -1,9 +1,9 @@
 use embedded_hal::i2c::{I2c, Operation};
 use crate::bits::{encode_bcd, get_bits, set_bits};
 use crate::datetime::Pcf8523DateTime;
-use crate::driver::Pcf8523Error::InvalidArgument;
+use crate::driver::Pcf8523Error::{InvalidArgument, InvalidTimerCountdown};
 use crate::registers::*;
-use crate::typedefs::{CorrectionMode, InterruptMode, PowerManagement, TimerB, TimerMode};
+use crate::typedefs::{CorrectionMode, InterruptMode, PowerManagement, TimerA, TimerB, TimerMode};
 
 /// Fixed I2C address of RTC module
 pub const PCF8523_I2C_ADDRESS: u8 = 0x68;
@@ -13,6 +13,7 @@ const PCF8523_CONTROL_3_DEFAULT: u8 = 0b1110_0000;
 pub enum Pcf8523Error<E> {
     I2C(E),
     InvalidArgument,
+    InvalidTimerCountdown,
     InconsistentTimerCounter,
 }
 
@@ -64,18 +65,34 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(self.write_reg(PCF8523_CONTROL_2, reg_val)?)
     }
 
-    /// Clears the Timer A countdown timer interrupt.
-    pub fn clear_timer_a_countdown_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
-        set_bits(&mut reg_val, 0b0_0111, 3, 0b1111_1000);
-        self.write_reg(PCF8523_CONTROL_2, reg_val)
+    /// Clears the Timer A interrupt
+    /// - `timer` TimerA configuration
+    pub fn clear_timer_a_interrupt(&mut self, timer: &TimerA) -> Result<(), Pcf8523Error<I2C::Error>> {
+        match timer.mode {
+            TimerMode::Countdown => {
+                let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
+                set_bits(&mut reg_val, 0b0_0111, 3, 0b1111_1000);
+                self.write_reg(PCF8523_CONTROL_2, reg_val)
+            },
+            TimerMode::Watchdog => {
+                self.read_reg(PCF8523_CONTROL_2)?;
+                Ok(())
+            }
+        }
     }
 
-    /// Clears the TImer A watchdog interrupt.
-    pub fn clear_timer_a_watchdog_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
-        self.read_reg(PCF8523_CONTROL_2)?;
-        Ok(())
-    }
+    /// Clears the Timer A countdown interrupt.
+    // pub fn clear_timer_a_countdown_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+    //     let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
+    //     set_bits(&mut reg_val, 0b0_0111, 3, 0b1111_1000);
+    //     self.write_reg(PCF8523_CONTROL_2, reg_val)
+    // }
+
+    /// Clears the Timer A watchdog interrupt.
+    // pub fn clear_timer_a_watchdog_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+    //     self.read_reg(PCF8523_CONTROL_2)?;
+    //     Ok(())
+    // }
 
     /// Clears the Timer B interrupt.
     pub fn clear_timer_b_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
@@ -205,18 +222,18 @@ impl<I2C: I2c> Pcf8523<I2C> {
     /// Enables the Timer A interrupt.
     /// - `mode` countdown or watchdog
     // TODO who should call this?
-    pub fn enable_timer_a_interrupt(&mut self, mode: TimerMode) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
-        let (lsb_offset, mask) = match mode {
-            TimerMode::Countdown => (1, 0b10),
-            TimerMode::Watchdog(freq) => {
-                self.write_reg(PCF8523_TMR_A_FREQ_CTRL, freq as u8)?;
-                (2, 0b100)
-            }
-        };
-        set_bits(&mut reg_val, 1, lsb_offset, mask);
-        Ok(self.write_reg(PCF8523_CONTROL_2, reg_val)?)
-    }
+    // pub fn enable_timer_a_interrupt(&mut self, mode: TimerMode) -> Result<(), Pcf8523Error<I2C::Error>> {
+    //     let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
+    //     let (lsb_offset, mask) = match mode {
+    //         TimerMode::Countdown => (1, 0b10),
+    //         TimerMode::Watchdog(freq) => {
+    //             self.write_reg(PCF8523_TMR_A_FREQ_CTRL, freq as u8)?;
+    //             (2, 0b100)
+    //         }
+    //     };
+    //     set_bits(&mut reg_val, 1, lsb_offset, mask);
+    //     Ok(self.write_reg(PCF8523_CONTROL_2, reg_val)?)
+    // }
 
     /// Enables the Timer B interrupt.
     pub fn enable_timer_b_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
@@ -317,20 +334,20 @@ impl<I2C: I2c> Pcf8523<I2C> {
 
     /// Sets the Timer A mode.
     /// - `mode` countdown or watchdog
-    pub fn set_timer_a_mode(&mut self, mode: TimerMode) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let mut reg_val = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
-        set_bits(&mut reg_val, mode.into(), 1, 0b110);
-        self.write_reg(PCF8523_TMR_CLKOUT_CTRL, reg_val)
-    }
+    // pub fn set_timer_a_mode(&mut self, mode: TimerMode) -> Result<(), Pcf8523Error<I2C::Error>> {
+    //     let mut reg_val = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
+    //     set_bits(&mut reg_val, mode.into(), 1, 0b110);
+    //     self.write_reg(PCF8523_TMR_CLKOUT_CTRL, reg_val)
+    // }
 
     /// Sets the Timer A interrupt mode.
     /// - `mode` interrupt mode and associated frequency
     // TODO diff between PA and pulsed??? 8.9.5
-    pub fn set_timer_a_interrupt_mode(&mut self, mode: InterruptMode) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let mut reg_val = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
-        set_bits(&mut reg_val, mode.into(), 7, 0b1000_0000);
-        self.write_reg(PCF8523_TMR_CLKOUT_CTRL, reg_val)
-    }
+    // pub fn set_timer_a_interrupt_mode(&mut self, mode: InterruptMode) -> Result<(), Pcf8523Error<I2C::Error>> {
+    //     let mut reg_val = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
+    //     set_bits(&mut reg_val, mode.into(), 7, 0b1000_0000);
+    //     self.write_reg(PCF8523_TMR_CLKOUT_CTRL, reg_val)
+    // }
 
     /// Starts the module, if not already started.
     pub fn start(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
@@ -342,20 +359,53 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(())
     }
 
+    // TODO InterruptMode::Pulsed should not take an arg for Timer A ONLY
+    // TODO explain that countdown does NOT auto-reload in Watchdog mode, but does in Countdown mode
     /// Starts Timer A.
-    /// - `counter` value to count down from
-    /// - `timer_mode` countdown or watchdog
-    /// - `interrupt_mode` interrupt mode and associated frequency
-    pub fn start_timer_a(&mut self, counter: u8, timer_mode: TimerMode, interrupt_mode: InterruptMode) -> Result<(), Pcf8523Error<I2C::Error>> {
-        // TODO should all of this happen in a transaction?
-        self.set_timer_a_mode(timer_mode)?;
-        self.set_timer_a_interrupt_mode(interrupt_mode)?;
-        self.write_reg(PCF8523_TMR_A_REG, counter)
+    /// - `timer` TimerA configuration
+    pub fn start_timer_a(&mut self, timer: &TimerA) -> Result<(), Pcf8523Error<I2C::Error>> {
+        if timer.countdown == 0 { return Err(InvalidTimerCountdown) }
+
+        let mut tmr_clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
+        let tac = get_bits(tmr_clkout_ctrl, 2, 1);
+        // if timer A countdown or watchdog is running, disable it
+        if tac == 1 || tac == 2 {
+            set_bits(&mut tmr_clkout_ctrl, 00, 1, 0b110);
+            self.write_reg(PCF8523_TMR_CLKOUT_CTRL, tmr_clkout_ctrl)?;
+        }
+
+        // set interrupt mode
+        set_bits(&mut tmr_clkout_ctrl, timer.interrupt_mode.into(), 7, 0b1000_0000);
+
+        // source clock frequency
+        self.write_reg(PCF8523_TMR_A_FREQ_CTRL, timer.source_clock as u8)?;
+
+        // enable interrupt
+        let mut control_2 = self.read_reg(PCF8523_CONTROL_2)?;
+        match timer.mode {
+            TimerMode::Countdown => set_bits(&mut control_2, 0b01, 1, 0b110),
+            TimerMode::Watchdog => set_bits(&mut control_2, 0b10, 1, 0b110),
+        }
+        self.write_reg(PCF8523_CONTROL_2, control_2)?;
+
+        // enable timer mode
+        set_bits(&mut tmr_clkout_ctrl, timer.mode.into(), 1, 0b110);
+        self.write_reg(PCF8523_TMR_CLKOUT_CTRL, tmr_clkout_ctrl)?;
+
+        // start the timer by setting a countdown value
+        self.write_reg(PCF8523_TMR_A_REG, timer.countdown)
     }
 
     /// Starts Timer B, which only supports countdown timer mode.
     /// - `timer` TimerB configuration
     pub fn start_timer_b(&mut self, timer: TimerB) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut tmr_clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
+        // disable timer (if enabled)
+        if get_bits(tmr_clkout_ctrl, 1, 0) == 1 {
+            set_bits(&mut tmr_clkout_ctrl, 0, 0, 0b1);
+            self.write_reg(PCF8523_TMR_CLKOUT_CTRL, tmr_clkout_ctrl)?;
+        }
+
         let mut tmr_b_freq_ctrl = self.read_reg(PCF8523_TMR_B_FREQ_CTRL)?;
 
         // set timer frequency
@@ -372,15 +422,8 @@ impl<I2C: I2c> Pcf8523<I2C> {
 
         self.enable_timer_b_interrupt()?;
 
-        let mut tmr_clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
         // set interrupt mode
         set_bits(&mut tmr_clkout_ctrl, timer.interrupt_mode.into(), 6, 0b100_0000);
-
-        // disable timer (if enabled)
-        if get_bits(tmr_clkout_ctrl, 1, 0) == 1 {
-            set_bits(&mut tmr_clkout_ctrl, 0, 0, 0b1);
-            self.write_reg(PCF8523_TMR_CLKOUT_CTRL, tmr_clkout_ctrl)?;
-        }
         // set countdown val
         self.write_reg(PCF8523_TMR_B_REG, timer.countdown)?;
 
