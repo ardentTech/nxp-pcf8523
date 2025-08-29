@@ -433,18 +433,25 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(self.write_reg(PCF8523_TMR_CLKOUT_CTRL, reg_val)?)
     }
 
-    // TODO does it make sense to return anything for watchdog? you do init with a countdown...
+    /// Gets the Timer A counter. This is the current value, and not the TimerA.countdown value that
+    /// was initially configured. In watchdog mode, this value represents the timer period and will
+    /// be constant until Timer A is reconfigured. In countdown mode, this value is dynamic in
+    /// relation to passing time. Since the timer cannot be frozen during the read, it's read
+    /// twice and compared for equality.
     pub fn timer_a_counter(&mut self) -> Result<u8, Pcf8523Error<I2C::Error>> {
-        // TODO
-        Ok(0)
+        self.timer_counter(PCF8523_TMR_A_REG)
     }
 
     /// Gets the Timer B counter. This is the current value, and not the TimerB.countdown value that
-    /// Timer B counts down from each period. As the timer cannot be frozen during the read, it's
-    /// read twice and compared for equality.
+    /// was initially configured. This value is dynamic in relation to passing timeSince the timer
+    /// cannot be frozen during the read, it's read twice and compared for equality.
     pub fn timer_b_counter(&mut self) -> Result<u8, Pcf8523Error<I2C::Error>> {
-        let a = self.read_reg(PCF8523_TMR_B_REG)?;
-        let b = self.read_reg(PCF8523_TMR_B_REG)?;
+        self.timer_counter(PCF8523_TMR_B_REG)
+    }
+
+    fn timer_counter(&mut self, reg_addr: u8) -> Result<u8, Pcf8523Error<I2C::Error>> {
+        let a = self.read_reg(reg_addr)?;
+        let b = self.read_reg(reg_addr)?;
         if a == b { Ok(a) } else { Err(Pcf8523Error::InconsistentTimerCounter) }
     }
 

@@ -907,6 +907,32 @@ fn stop_timer_b_ok() {
 }
 
 #[test]
+fn timer_a_counter_err() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_TMR_A_REG, 0b011),
+        i2c_reg_read(PCF8523_TMR_A_REG, 0b010),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    driver.timer_a_counter().unwrap_err();
+    i2c.done();
+}
+
+#[test]
+fn timer_a_counter_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_TMR_A_REG, 0b011),
+        i2c_reg_read(PCF8523_TMR_A_REG, 0b011),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    driver.timer_a_counter().unwrap();
+    i2c.done();
+}
+
+#[test]
 fn timer_b_counter_err() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
