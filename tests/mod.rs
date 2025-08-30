@@ -86,30 +86,42 @@ fn clear_second_interrupt_ok() {
     i2c.done();
 }
 
-// #[test]
-// fn clear_timer_a_countdown_interrupt_ok() {
-//     let expectations = [
-//         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
-//         i2c_reg_read(PCF8523_CONTROL_2, 0b0111_0011),
-//         i2c_reg_write(PCF8523_CONTROL_2, 0b0011_1011),
-//     ];
-//     let mut i2c = I2cMock::new(&expectations);
-//     let mut driver = Pcf8523::new(&mut i2c).unwrap();
-//     driver.clear_timer_a_countdown_interrupt().unwrap();
-//     i2c.done();
-// }
+#[test]
+fn clear_timer_a_interrupt_countdown_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_2, 0b0111_0011),
+        i2c_reg_write(PCF8523_CONTROL_2, 0b0011_1011),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    let timer = TimerA {
+        countdown: 0,
+        interrupt_mode: Pulsed,
+        mode: Countdown,
+        source_clock: Frequency1_60Hz,
+    };
+    driver.clear_timer_a_interrupt(&timer).unwrap();
+    i2c.done();
+}
 
-// #[test]
-// fn clear_timer_a_watchdog_interrupt_ok() {
-//     let expectations = [
-//         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
-//         i2c_reg_read(PCF8523_CONTROL_2, 0b0111_0011),
-//     ];
-//     let mut i2c = I2cMock::new(&expectations);
-//     let mut driver = Pcf8523::new(&mut i2c).unwrap();
-//     driver.clear_timer_a_watchdog_interrupt().unwrap();
-//     i2c.done();
-// }
+#[test]
+fn clear_timer_a_interrupt_watchdog_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_2, 0b0111_0011),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    let timer = TimerA {
+        countdown: 0,
+        interrupt_mode: Pulsed,
+        mode: Watchdog,
+        source_clock: Frequency1_60Hz,
+    };
+    driver.clear_timer_a_interrupt(&timer).unwrap();
+    i2c.done();
+}
 
 #[test]
 fn clear_timer_b_interrupt_ok() {
@@ -551,6 +563,61 @@ fn read_reg_ok() {
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
     let val = driver.read_reg(PCF8523_CONTROL_1).unwrap();
     assert_eq!(val, 0b0101_0110);
+    i2c.done();
+}
+
+#[test]
+fn reload_timer_a_watchdog_countdown_arg_err() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0001_1100),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    let timer = TimerA {
+        countdown: 0,
+        interrupt_mode: Pulsed,
+        mode: Countdown,
+        source_clock: Frequency1_60Hz,
+    };
+    driver.reload_timer_a_watchdog_countdown(&timer).unwrap_err();
+    i2c.done();
+}
+
+#[test]
+fn reload_timer_a_watchdog_countdown_mode_err() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0001_1110),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    let timer = TimerA {
+        countdown: 0,
+        interrupt_mode: Pulsed,
+        mode: Watchdog,
+        source_clock: Frequency1_60Hz,
+    };
+    driver.reload_timer_a_watchdog_countdown(&timer).unwrap_err();
+    i2c.done();
+}
+
+#[test]
+fn reload_timer_a_watchdog_countdown_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0001_1100),
+        i2c_reg_write(PCF8523_TMR_A_REG, 0b0100_0001),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c).unwrap();
+    let timer = TimerA {
+        countdown: 65,
+        interrupt_mode: Pulsed,
+        mode: Watchdog,
+        source_clock: Frequency1_60Hz,
+    };
+    driver.reload_timer_a_watchdog_countdown(&timer).unwrap();
     i2c.done();
 }
 

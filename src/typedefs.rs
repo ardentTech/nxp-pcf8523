@@ -77,7 +77,7 @@ impl From<TimerBInterruptMode> for u8 {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum TimerMode {
     Countdown,
     Watchdog
@@ -92,6 +92,8 @@ impl From<TimerMode> for u8 {
 }
 
 pub struct TimerA {
+    /// With TimerMode::Countdown, this value will automatically reload. With TimerMode::Watchdog,
+    /// it will not automatically reload.
     pub countdown: u8,
     pub interrupt_mode: TimerAInterruptMode,
     pub mode: TimerMode,

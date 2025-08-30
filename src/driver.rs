@@ -4,6 +4,7 @@ use crate::datetime::Pcf8523DateTime;
 use crate::driver::Pcf8523Error::{InvalidArgument, InvalidTimerCountdown};
 use crate::registers::*;
 use crate::typedefs::{CorrectionMode, TimerBInterruptMode, PowerManagement, TimerA, TimerB, TimerMode};
+use crate::typedefs::TimerMode::{Countdown, Watchdog};
 
 /// Fixed I2C address of RTC module
 pub const PCF8523_I2C_ADDRESS: u8 = 0x68;
@@ -65,17 +66,16 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(self.write_reg(PCF8523_CONTROL_2, reg_val)?)
     }
 
-    // TODO test
     /// Clears the Timer A interrupt
     /// - `timer` TimerA configuration
     pub fn clear_timer_a_interrupt(&mut self, timer: &TimerA) -> Result<(), Pcf8523Error<I2C::Error>> {
         match timer.mode {
-            TimerMode::Countdown => {
+            Countdown => {
                 let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
                 set_bits(&mut reg_val, 0b0_0111, 3, 0b1111_1000);
                 self.write_reg(PCF8523_CONTROL_2, reg_val)
             },
-            TimerMode::Watchdog => {
+            Watchdog => {
                 self.read_reg(PCF8523_CONTROL_2)?;
                 Ok(())
             }
@@ -196,7 +196,6 @@ impl<I2C: I2c> Pcf8523<I2C> {
 
     /// Enables the second interrupt.
     /// - `pulsed` configures the interrupt as pulsed or permanently active
-    // TODO frequency? 8.9.5
     pub fn enable_second_interrupt(&mut self, pulsed: bool) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut control_1 = self.read_reg(PCF8523_CONTROL_1)?;
         set_bits(&mut control_1, 1, 2, 0b100);
@@ -209,7 +208,6 @@ impl<I2C: I2c> Pcf8523<I2C> {
 
     /// Enables the Timer A interrupt.
     /// - `mode` countdown or watchdog
-    // TODO who should call this?
     pub fn enable_timer_a_interrupt(&mut self, mode: TimerMode) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut control_2 = self.read_reg(PCF8523_CONTROL_2)?;
         match mode {
@@ -281,6 +279,15 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(buffer[0])
     }
 
+    /// Reloads the Timer A Watchdog counter.
+    pub fn reload_timer_a_watchdog_countdown(&mut self, timer: &TimerA) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let tmr_clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
+        if timer.mode == Countdown || get_bits(tmr_clkout_ctrl, 2, 1) != 0b10 {
+            return Err(InvalidArgument);
+        }
+        self.write_reg(PCF8523_TMR_A_REG, timer.countdown)
+    }
+
     /// Performs a software reset.
     pub fn reset(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         self.write_reg(PCF8523_CONTROL_1, 0b101_1000)
@@ -316,23 +323,6 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(())
     }
 
-    /// Sets the Timer A mode.
-    /// - `mode` countdown or watchdog
-    // pub fn set_timer_a_mode(&mut self, mode: TimerMode) -> Result<(), Pcf8523Error<I2C::Error>> {
-    //     let mut reg_val = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
-    //     set_bits(&mut reg_val, mode.into(), 1, 0b110);
-    //     self.write_reg(PCF8523_TMR_CLKOUT_CTRL, reg_val)
-    // }
-
-    /// Sets the Timer A interrupt mode.
-    /// - `mode` interrupt mode and associated frequency
-    // TODO diff between PA and pulsed??? 8.9.5
-    // pub fn set_timer_a_interrupt_mode(&mut self, mode: InterruptMode) -> Result<(), Pcf8523Error<I2C::Error>> {
-    //     let mut reg_val = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
-    //     set_bits(&mut reg_val, mode.into(), 7, 0b1000_0000);
-    //     self.write_reg(PCF8523_TMR_CLKOUT_CTRL, reg_val)
-    // }
-
     /// Starts the module, if not already started.
     pub fn start(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
@@ -343,8 +333,6 @@ impl<I2C: I2c> Pcf8523<I2C> {
         Ok(())
     }
 
-    // TODO InterruptMode::Pulsed should not take an arg for Timer A ONLY
-    // TODO explain that countdown does NOT auto-reload in Watchdog mode, but does in Countdown mode
     /// Starts Timer A.
     /// - `timer` TimerA configuration
     pub fn start_timer_a(&mut self, timer: &TimerA) -> Result<(), Pcf8523Error<I2C::Error>> {
