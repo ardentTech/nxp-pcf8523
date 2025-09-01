@@ -1,3 +1,4 @@
+#[derive(Copy, Clone)]
 pub enum CorrectionMode {
     /// Correction is triggered every minute for faster adjustment but more power consumption.
     /// Pulses are then applied once per second.
@@ -7,6 +8,7 @@ pub enum CorrectionMode {
     Slow = 0x0
 }
 
+#[derive(Copy, Clone)]
 pub enum PowerManagement {
     /// Battery switch-over function is enabled in standard mode; battery low detection function is
     /// enabled.
@@ -91,6 +93,7 @@ impl From<TimerMode> for u8 {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct TimerA {
     /// With TimerMode::Countdown, this value will automatically reload. With TimerMode::Watchdog,
     /// it will not automatically reload.
@@ -100,6 +103,7 @@ pub struct TimerA {
     pub source_clock: TimerSourceClock,
 }
 
+#[derive(Copy, Clone)]
 pub struct TimerB {
     pub countdown: u8,
     pub interrupt_mode: TimerBInterruptMode,

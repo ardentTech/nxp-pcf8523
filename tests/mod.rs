@@ -474,8 +474,12 @@ fn get_datetime_ok() {
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
     let dt = driver.now().unwrap();
-    assert_eq!(dt.seconds, 15);
-    // TODO other assertions
+    assert_eq!(dt.second, 15);
+    assert_eq!(dt.minute, 5);
+    assert_eq!(dt.hour, 0);
+    assert_eq!(dt.day, 0);
+    assert_eq!(dt.month, 1);
+    assert_eq!(dt.year, 0);
     i2c.done();
 }
 
@@ -673,9 +677,9 @@ fn set_datetime_ok() {
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c).unwrap();
     let dt = Pcf8523DateTime {
-        seconds: 59,
-        minutes: 15,
-        hours: 2,
+        second: 59,
+        minute: 15,
+        hour: 2,
         day: 11,
         month: 10,
         year: 45,

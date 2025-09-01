@@ -5,9 +5,9 @@ const SECONDS_FROM_1970_TO_2000: u32 = 946684800;
 
 /// Simple datetime that supports 01.01.2000 to 12.31.2099 (inclusive).
 pub struct Pcf8523DateTime {
-    pub seconds: u8,
-    pub minutes: u8,
-    pub hours: u8,
+    pub second: u8,
+    pub minute: u8,
+    pub hour: u8,
     pub day: u8,
     pub month: u8,
     pub year: u8,
@@ -16,9 +16,9 @@ pub struct Pcf8523DateTime {
 impl Pcf8523DateTime {
 
     /// Constructs a new datetime instance.
-    /// - `hours` 0..23 (inclusive)
-    /// - `minutes` 0..59 (inclusive)
-    /// - `seconds` 0..59 (inclusive)
+    /// - `hour` 0..23 (inclusive)
+    /// - `minute` 0..59 (inclusive)
+    /// - `second` 0..59 (inclusive)
     /// - `month` 1..12 (inclusive)
     /// - `day` 1..31 (inclusive) is validated against month and year
     /// - `year` 0..99 (inclusive) offset from the year 2000
@@ -26,14 +26,14 @@ impl Pcf8523DateTime {
         if !Self::validate_time(seconds, minutes, hours) || !Self::validate_date(day, month, year) {
             return None;
         }
-        Some(Self { seconds, minutes, hours, day, month, year })
+        Some(Self { second: seconds, minute: minutes, hour: hours, day, month, year })
     }
 
     pub(crate) fn bcd_decode(&self) -> Self {
         Self {
-            seconds: decode_bcd(self.seconds),
-            minutes: decode_bcd(self.minutes),
-            hours: decode_bcd(self.hours),
+            second: decode_bcd(self.second),
+            minute: decode_bcd(self.minute),
+            hour: decode_bcd(self.hour),
             day: decode_bcd(self.day),
             month: decode_bcd(self.month),
             year: decode_bcd(self.year),
@@ -42,9 +42,9 @@ impl Pcf8523DateTime {
 
     pub(crate) fn encode_bcd(&self) -> Self {
         Self {
-            seconds: encode_bcd(self.seconds),
-            minutes: encode_bcd(self.minutes),
-            hours: encode_bcd(self.hours),
+            second: encode_bcd(self.second),
+            minute: encode_bcd(self.minute),
+            hour: encode_bcd(self.hour),
             day: encode_bcd(self.day),
             month: encode_bcd(self.month),
             year: encode_bcd(self.year),
@@ -53,7 +53,7 @@ impl Pcf8523DateTime {
 
     /// Gets a Unix timestamp representation of the datetime.
     pub fn timestamp(&self) -> u32 {
-        SECONDS_FROM_1970_TO_2000 + ((self.days_since_2000() * 24 + (self.hours as u32)) * 60 + (self.minutes as u32)) * 60 + (self.seconds as u32)
+        SECONDS_FROM_1970_TO_2000 + ((self.days_since_2000() * 24 + (self.hour as u32)) * 60 + (self.minute as u32)) * 60 + (self.second as u32)
     }
 
     fn days_since_2000(&self) -> u32 {
@@ -75,7 +75,6 @@ impl Pcf8523DateTime {
         }
     }
 
-    // TODO might need to break these out so they can be reused by alarm methods
     fn validate_time(seconds: u8, minutes: u8, hours: u8) -> bool {
         seconds < 60 && minutes < 60 && hours < 24
     }
