@@ -35,7 +35,8 @@ The current example is based upon an [Adafruit Feather RP2040 RFM95](https://www
 From the root dir: `$ cargo test`
 
 ### TODO
-Hardware tests
+* More hardware tests
+* CLKOUT
 
 ### Resources
 [Datasheet](www.nxp.com/docs/en/data-sheet/PCF8523.pdf)

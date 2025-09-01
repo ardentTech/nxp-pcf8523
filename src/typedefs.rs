@@ -95,12 +95,18 @@ impl From<TimerMode> for u8 {
 
 #[derive(Copy, Clone)]
 pub struct TimerA {
-    /// With TimerMode::Countdown, this value will automatically reload. With TimerMode::Watchdog,
-    /// it will not automatically reload.
+    /// When TimerMode::Countdown is selected, this value will automatically reload. When
+    /// TimerMode::Watchdog is selected, it will not automatically reload.
     pub countdown: u8,
     pub interrupt_mode: TimerAInterruptMode,
     pub mode: TimerMode,
     pub source_clock: TimerSourceClock,
+}
+impl TimerA {
+    /// Creates a new TimerA instance.
+    pub fn new(countdown: u8, interrupt_mode: TimerAInterruptMode, mode: TimerMode, source_clock: TimerSourceClock) -> Self {
+        Self { countdown, interrupt_mode, mode, source_clock }
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -108,4 +114,10 @@ pub struct TimerB {
     pub countdown: u8,
     pub interrupt_mode: TimerBInterruptMode,
     pub source_clock: TimerSourceClock,
+}
+impl TimerB {
+    /// Creates a new TimerB instance.
+    pub fn new(countdown: u8, interrupt_mode: TimerBInterruptMode, source_clock: TimerSourceClock) -> Self {
+        Self { countdown, interrupt_mode, source_clock }
+    }
 }
