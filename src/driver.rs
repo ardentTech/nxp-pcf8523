@@ -365,7 +365,7 @@ impl<I2C: I2c> Pcf8523<I2C> {
 
     /// Starts Timer B, which only supports countdown timer mode.
     /// - `timer` TimerB configuration
-    pub fn start_timer_b(&mut self, timer: TimerB) -> Result<(), Pcf8523Error<I2C::Error>> {
+    pub fn start_timer_b(&mut self, timer: &TimerB) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut tmr_clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
         // disable timer (if enabled)
         if get_bits(tmr_clkout_ctrl, 1, 0) == 1 {

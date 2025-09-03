@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-09-03
+
 ### Added
 
+- Standardize driver return types and datetime field names
+- Add missing driver tests
 - Enable/disable correction interrupt
 - Enable/disable/clear second interrupt
 - Clear alarm interrupt

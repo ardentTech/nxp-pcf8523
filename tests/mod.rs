@@ -824,7 +824,7 @@ fn start_timer_b_ok() {
         interrupt_mode: TimerBInterruptMode::Pulsed(Width93_750ms),
         source_clock: Frequency1Hz,
     };
-    driver.start_timer_b(timer_b).unwrap();
+    driver.start_timer_b(&timer_b).unwrap();
     i2c.done();
 }
 
