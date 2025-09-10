@@ -12,6 +12,7 @@ use rp2040_hal::fugit::RateExtU32;
 use rp2040_hal::gpio::{FunctionI2C, FunctionSioOutput, Pin, Pins, PullDown, PullUp};
 use nxp_pcf8523::datetime::Pcf8523DateTime;
 use nxp_pcf8523::Pcf8523;
+use nxp_pcf8523::typedefs::Pcf8523T;
 
 /// The linker will place this boot block at the start of our program image. We
 /// need this to help the ROM bootloader get our code up and running.
@@ -61,7 +62,7 @@ fn main() -> ! {
         &clocks.system_clock,
     );
 
-    let mut pcf8523 = Pcf8523::new(i2c_bus).unwrap();
+    let mut pcf8523 = Pcf8523::new(i2c_bus, Pcf8523T {}).unwrap();
     let dt = Pcf8523DateTime::new(0, 0, 0, 8, 19, 25).unwrap();
     pcf8523.set_datetime(dt).unwrap();
     pcf8523.start().unwrap();
