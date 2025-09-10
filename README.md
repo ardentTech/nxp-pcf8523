@@ -3,6 +3,9 @@
 I2C modes include standard (100 kHz), fast (400 kHz) and fast+ (1000 kHz), and the module has a fixed I2C address of
 `0x68`.
 
+The driver does not **currently** constrain functionality to specific chip variants. So, while the T and K variants
+don't have a INT2 pin, you can still configure Timer B in software even though it will no-op.
+
 ### Usage
 ```rust
 use nxp_pcf8523::Pcf8523;
@@ -35,8 +38,7 @@ The current example is based upon an [Adafruit Feather RP2040 RFM95](https://www
 From the root dir: `$ cargo test`
 
 ### TODO
-* More hardware tests
-* CLKOUT
+* Chip variant selection
 
 ### Resources
 [Datasheet](www.nxp.com/docs/en/data-sheet/PCF8523.pdf)

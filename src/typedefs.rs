@@ -30,6 +30,7 @@ pub enum PowerManagement {
     SwitchOverOffLowDetectionOff = 0x7
 }
 
+
 #[derive(Copy, Clone)]
 pub enum TimerSourceClock {
     Frequency4096Hz = 0x0,
@@ -50,6 +51,35 @@ pub enum LowPulseWidth {
     Width187_500ms = 0x6,
     Width218_750ms = 0x7,
 }
+
+/// PCF8523T chip variant
+pub struct Pcf8523T {}
+
+/// PCF8523TK chip variant
+pub struct Pcf8523TK {}
+
+/// PCF8523TS chip variant
+pub struct  Pcf8523TS {}
+
+/// PCF8523U chip variant
+pub struct Pcf8523U {}
+
+/// Trait for all chip variants
+pub(crate) trait Variant {}
+impl Variant for Pcf8523T {}
+impl Variant for Pcf8523TK {}
+impl Variant for Pcf8523TS {}
+impl Variant for Pcf8523U {}
+
+/// Trait for chip variants which have a physical CLKOUT pin
+pub(crate) trait ClkOut {}
+impl ClkOut for Pcf8523TS {}
+impl ClkOut for Pcf8523U {}
+
+/// Trait for chip variants which have a physical INT2 pin
+pub(crate) trait Int2 {}
+impl Int2 for Pcf8523TS {}
+impl Int2 for Pcf8523U {}
 
 #[derive(Copy, Clone)]
 pub enum TimerAInterruptMode {
@@ -95,10 +125,10 @@ impl From<TimerMode> for u8 {
 
 #[derive(Copy, Clone)]
 pub struct TimerA {
-    /// When TimerMode::Countdown is selected, this value will automatically reload. When
-    /// TimerMode::Watchdog is selected, it will not automatically reload.
     pub countdown: u8,
     pub interrupt_mode: TimerAInterruptMode,
+    /// When TimerMode::Countdown is selected, the `countdown` value will automatically reload. When
+    /// TimerMode::Watchdog is selected, it will not automatically reload.
     pub mode: TimerMode,
     pub source_clock: TimerSourceClock,
 }
