@@ -3,9 +3,6 @@
 I2C modes include standard (100 kHz), fast (400 kHz) and fast+ (1000 kHz), and the module has a fixed I2C address of
 `0x68`.
 
-The driver does not **currently** constrain functionality to specific chip variants. So, while the T and K variants
-don't have a INT2 pin, you can still configure Timer B in software even though it will no-op.
-
 ### Usage
 ```rust
 use nxp_pcf8523::Pcf8523;
@@ -13,7 +10,7 @@ use nxp_pcf8523::datetime::Pcf8523DateTime;
 
 // configure I2C bus at 100, 400 or 1_000 kHz...
 
-let mut pcf8523 = Pcf8523::new(i2c_bus).unwrap();
+let mut pcf8523 = Pcf8523::new(i2c_bus, Pcf8523T {}).unwrap();
 // 1:41:13PM on 08.21.2025
 let dt = Pcf8523DateTime::new(13, 41, 13, 8, 21, 25).unwrap();
 pcf8523.set_datetime(dt).unwrap();
@@ -27,18 +24,17 @@ let timestamp = now.timestamp();
 The current example is based upon an [Adafruit Feather RP2040 RFM95](https://www.adafruit.com/product/5714) with an
 [Adalogger FeatherWing RTC + SD](https://www.adafruit.com/product/2922) (which has an on-board PCF8523):
 1. `$ cd examples/rp2040`
-2. `$ cargo build`
-3. Attach RP2040 feather target to host
-4. `$ cargo run`
-5. Attach featherwing to feather
-6. Press reset btn on featherwing
-7. The on-board LED will toggle on a 2s interval
+2. Attach RP2040 feather target to host
+3. `$ cargo run --example now`
+4. Attach featherwing to feather
+5. Press reset btn on featherwing
+6. The on-board LED will toggle on a 2s interval
 
 ### Tests
 From the root dir: `$ cargo test`
 
 ### TODO
-* Chip variant selection
+* Hardware tests
 
 ### Resources
 [Datasheet](www.nxp.com/docs/en/data-sheet/PCF8523.pdf)
