@@ -65,7 +65,7 @@ pub struct  Pcf8523TS {}
 pub struct Pcf8523U {}
 
 /// Trait for all chip variants
-pub(crate) trait Variant {}
+pub trait Variant {}
 impl Variant for Pcf8523T {}
 impl Variant for Pcf8523TK {}
 impl Variant for Pcf8523TS {}
@@ -77,7 +77,7 @@ impl ClkOut for Pcf8523TS {}
 impl ClkOut for Pcf8523U {}
 
 /// Trait for chip variants which have a physical INT2 pin
-pub(crate) trait Int2 {}
+pub trait Int2 {}
 impl Int2 for Pcf8523TS {}
 impl Int2 for Pcf8523U {}
 

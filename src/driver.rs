@@ -3,7 +3,7 @@ use crate::bits::{encode_bcd, get_bits, set_bits};
 use crate::datetime::Pcf8523DateTime;
 use crate::driver::Pcf8523Error::{InvalidArgument, InvalidTimerCountdown};
 use crate::registers::*;
-use crate::typedefs::{CorrectionMode, TimerBInterruptMode, PowerManagement, TimerA, TimerB, TimerMode, Pcf8523T, Variant, Int2};
+use crate::typedefs::{CorrectionMode, TimerBInterruptMode, PowerManagement, TimerA, TimerB, TimerMode, Variant, Int2};
 use crate::typedefs::TimerMode::{Countdown, Watchdog};
 
 /// Fixed I2C address of RTC module
