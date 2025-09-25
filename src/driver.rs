@@ -151,7 +151,7 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
     }
 
     /// Enables the alarm interrupt.
-    pub fn enable_alarm_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+    fn enable_alarm_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
         set_bits(&mut reg_val, 1, 1, 0b10);
         self.write_reg(PCF8523_CONTROL_1, reg_val)
@@ -168,7 +168,9 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
     /// - `day` 1..31 (inclusive)
     pub fn enable_day_alarm(&mut self, day: u8) -> Result<(), Pcf8523Error<I2C::Error>> {
         if day == 0 || day > 31 { return Err(InvalidArgument) }
+        self.disable_clkout()?;
         self.write_reg(PCF8523_DAY_ALARM, (0 << 7) | encode_bcd(day))?;
+        self.enable_alarm_interrupt()?;
         Ok(())
     }
 
@@ -176,7 +178,9 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
     /// - `hour` 0..23 (inclusive)
     pub fn enable_hour_alarm(&mut self, hour: u8) -> Result<(), Pcf8523Error<I2C::Error>> {
         if hour > 23 { return Err(InvalidArgument) }
+        self.disable_clkout()?;
         self.write_reg(PCF8523_HOUR_ALARM, (0 << 7) | encode_bcd(hour))?;
+        self.enable_alarm_interrupt()?;
         Ok(())
     }
 
@@ -184,7 +188,9 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
     /// - `minute` 0..59 (inclusive)
     pub fn enable_minute_alarm(&mut self, minute: u8) -> Result<(), Pcf8523Error<I2C::Error>> {
         if minute > 59 { return Err(InvalidArgument) }
+        self.disable_clkout()?;
         self.write_reg(PCF8523_MINUTE_ALARM, (0 << 7) | encode_bcd(minute))?;
+        self.enable_alarm_interrupt()?;
         Ok(())
     }
 
@@ -219,7 +225,9 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
     /// - `weekday` 0..6 (inclusive)
     pub fn enable_weekday_alarm(&mut self, weekday: u8) -> Result<(), Pcf8523Error<I2C::Error>> {
         if weekday > 6 { return Err(InvalidArgument) }
+        self.disable_clkout()?;
         self.write_reg(PCF8523_WEEKDAY_ALARM, (0 << 7) | weekday)?;
+        self.enable_alarm_interrupt()?;
         Ok(())
     }
 

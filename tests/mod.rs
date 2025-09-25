@@ -255,19 +255,6 @@ fn disable_weekday_alarm_ok() {
 }
 
 #[test]
-fn enable_alarm_interrupt_ok() {
-    let expectations = [
-        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
-        i2c_reg_read(PCF8523_CONTROL_1, 0b0010_0100),
-        i2c_reg_write(PCF8523_CONTROL_1, 0b0010_0110),
-    ];
-    let mut i2c = I2cMock::new(&expectations);
-    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
-    driver.enable_alarm_interrupt().unwrap();
-    i2c.done();
-}
-
-#[test]
 fn enable_correction_interrupt_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
@@ -308,7 +295,11 @@ fn enable_weekday_alarm_invalid_arg_err() {
 fn enable_day_alarm_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0),
+        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b11_1000),
         i2c_reg_write(PCF8523_DAY_ALARM, 0b0001_0011),
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0010_0100),
+        i2c_reg_write(PCF8523_CONTROL_1, 0b0010_0110),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
@@ -365,7 +356,11 @@ fn enable_timer_b_interrupt_ok() {
 fn enable_weekday_alarm_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0),
+        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b11_1000),
         i2c_reg_write(PCF8523_WEEKDAY_ALARM, 0b0000_0100),
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0010_0100),
+        i2c_reg_write(PCF8523_CONTROL_1, 0b0010_0110),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
@@ -389,7 +384,11 @@ fn enable_hour_alarm_invalid_arg_err() {
 fn enable_hour_alarm_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0),
+        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b11_1000),
         i2c_reg_write(PCF8523_HOUR_ALARM, 0b0001_0111),
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0010_0100),
+        i2c_reg_write(PCF8523_CONTROL_1, 0b0010_0110),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
@@ -413,7 +412,11 @@ fn enable_minute_alarm_invalid_arg_err() {
 fn enable_minute_alarm_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0),
+        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b11_1000),
         i2c_reg_write(PCF8523_MINUTE_ALARM, 0b0101_1001),
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0010_0100),
+        i2c_reg_write(PCF8523_CONTROL_1, 0b0010_0110),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
