@@ -2,7 +2,7 @@
 //!
 //! "A reset is automatically generated at power-on."
 //!
-//! See Table 10 in section 8.3 Reset
+//! See datasheet section 8.3 table 10
 
 #![no_std]
 #![no_main]

@@ -1,3 +1,4 @@
+//! Read Current Timestamp Example
 #![no_std]
 #![no_main]
 
