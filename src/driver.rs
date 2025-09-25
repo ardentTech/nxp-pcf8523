@@ -90,6 +90,14 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         self.write_reg(PCF8523_CONTROL_1, reg_val)
     }
 
+    /// Disables battery low detection.
+    pub fn disable_battery_low_detection(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_3)?;
+        set_bits(&mut reg_val, 0, 0, 0b1);
+        self.write_reg(PCF8523_CONTROL_3, reg_val);
+        Ok(())
+    }
+
     /// Disables CLKOUT.
     fn disable_clkout(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut tmr_clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
@@ -155,6 +163,18 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
         set_bits(&mut reg_val, 1, 1, 0b10);
         self.write_reg(PCF8523_CONTROL_1, reg_val)
+    }
+
+    /// Enables battery low detection.
+    ///
+    /// Generates an interrupt on INT1 (open-drain) when battery voltage drops below 2.5V (typical).
+    /// The generated interrupt can only be cleared by replacing the battery.
+    pub fn enable_battery_low_detection(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        self.disable_clkout()?;
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_3)?;
+        set_bits(&mut reg_val, 1, 0, 0b1);
+        self.write_reg(PCF8523_CONTROL_3, reg_val);
+        Ok(())
     }
 
     /// Enables the correction interrupt, which pulses on every correction cycle.

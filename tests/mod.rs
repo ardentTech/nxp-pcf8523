@@ -151,6 +151,19 @@ fn disable_alarm_interrupt_ok() {
 }
 
 #[test]
+fn disable_battery_low_detection_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_3, 0b0010_0001),
+        i2c_reg_write(PCF8523_CONTROL_3, 0b0010_0000),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    driver.disable_battery_low_detection().unwrap();
+    i2c.done();
+}
+
+#[test]
 fn disable_correction_interrupt_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
@@ -251,6 +264,21 @@ fn disable_weekday_alarm_ok() {
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
     driver.disable_weekday_alarm().unwrap();
+    i2c.done();
+}
+
+#[test]
+fn enable_battery_low_detection_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0),
+        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b11_1000),
+        i2c_reg_read(PCF8523_CONTROL_3, 0b0010_0000),
+        i2c_reg_write(PCF8523_CONTROL_3, 0b0010_0001),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    driver.enable_battery_low_detection().unwrap();
     i2c.done();
 }
 

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Chip variants
 - Constrain INT2 functionality to Pcf8523TS and Pcf8523U
 - Disable CLKOUT when Timer A, B, Second interrupts are enabled
+- Battery low detection
 
 ## [0.3.0] - 2025-09-03
 
