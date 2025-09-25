@@ -29,6 +29,22 @@ pub enum PowerManagement {
     /// detection function is disabled.
     SwitchOverOffLowDetectionOff = 0x7
 }
+impl TryFrom<u8> for PowerManagement {
+
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0x0 => Ok(PowerManagement::SwitchOverStandardOnLowDetectionOn),
+            0x1 => Ok(PowerManagement::SwitchOverDirectOnLowDetectionOn),
+            0x2 => Ok(PowerManagement::SwitchOverOffLowDetectionOn),
+            0x4 => Ok(PowerManagement::SwitchOverStandardOnLowDetectionOff),
+            0x5 => Ok(PowerManagement::SwitchOverDirectOnLowDetectionOff),
+            0x7 => Ok(PowerManagement::SwitchOverOffLowDetectionOff),
+            _ => Err(())
+        }
+    }
+}
 
 
 #[derive(Copy, Clone)]

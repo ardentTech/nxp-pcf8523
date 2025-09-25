@@ -1,7 +1,7 @@
 use embedded_hal::i2c::{I2c, Operation};
 use crate::bits::{encode_bcd, get_bits, set_bits};
 use crate::datetime::Pcf8523DateTime;
-use crate::driver::Pcf8523Error::{InvalidArgument, InvalidTimerCountdown};
+use crate::driver::Pcf8523Error::{Internal, InvalidArgument, InvalidState, InvalidTimerCountdown};
 use crate::registers::*;
 use crate::typedefs::{CorrectionMode, TimerBInterruptMode, PowerManagement, TimerA, TimerB, TimerMode, Variant, Int2};
 use crate::typedefs::TimerMode::{Countdown, Watchdog};
@@ -13,9 +13,11 @@ const PCF8523_CONTROL_3_DEFAULT: u8 = 0b1110_0000;
 #[derive(Debug, PartialEq)]
 pub enum Pcf8523Error<E> {
     I2C(E),
-    InvalidArgument,
-    InvalidTimerCountdown,
     InconsistentTimerCounter,
+    Internal,
+    InvalidArgument,
+    InvalidState,
+    InvalidTimerCountdown,
 }
 
 impl <E> From<E> for Pcf8523Error<E> {
@@ -93,9 +95,9 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
     /// Disables battery low detection.
     pub fn disable_battery_low_detection(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_3)?;
+        // TODO check if enabled before continuing
         set_bits(&mut reg_val, 0, 0, 0b1);
-        self.write_reg(PCF8523_CONTROL_3, reg_val);
-        Ok(())
+        self.write_reg(PCF8523_CONTROL_3, reg_val)
     }
 
     /// Disables CLKOUT.
@@ -165,16 +167,29 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         self.write_reg(PCF8523_CONTROL_1, reg_val)
     }
 
-    /// Enables battery low detection.
+    /// Enables battery low detection interrupt.
     ///
+    /// Power management must already be configured for battery low detection.
     /// Generates an interrupt on INT1 (open-drain) when battery voltage drops below 2.5V (typical).
     /// The generated interrupt can only be cleared by replacing the battery.
-    pub fn enable_battery_low_detection(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
-        self.disable_clkout()?;
+    pub fn enable_battery_low_detection_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_3)?;
-        set_bits(&mut reg_val, 1, 0, 0b1);
-        self.write_reg(PCF8523_CONTROL_3, reg_val);
-        Ok(())
+        let pm_bits = get_bits(reg_val, 3, 5);
+        match PowerManagement::try_from(pm_bits) {
+            Ok(pm) => {
+                match pm {
+                    PowerManagement::SwitchOverStandardOnLowDetectionOn |
+                    PowerManagement::SwitchOverDirectOnLowDetectionOn |
+                    PowerManagement::SwitchOverOffLowDetectionOn => {
+                        self.disable_clkout()?;
+                        set_bits(&mut reg_val, 1, 0, 0b1);
+                        self.write_reg(PCF8523_CONTROL_3, reg_val)
+                    }
+                    _ => Err(InvalidState)
+                }
+            }
+            Err(_) => Err(Internal)
+        }
     }
 
     /// Enables the correction interrupt, which pulses on every correction cycle.

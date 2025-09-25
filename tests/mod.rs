@@ -3,7 +3,7 @@ use embedded_hal::i2c::NoAcknowledgeSource::Address;
 use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
 use nxp_pcf8523::datetime::Pcf8523DateTime;
 use nxp_pcf8523::driver::{Pcf8523, Pcf8523Error, PCF8523_I2C_ADDRESS};
-use nxp_pcf8523::driver::Pcf8523Error::InvalidArgument;
+use nxp_pcf8523::driver::Pcf8523Error::{Internal, InvalidArgument, InvalidState};
 use nxp_pcf8523::registers::*;
 use nxp_pcf8523::typedefs::CorrectionMode::{Fast, Slow};
 use nxp_pcf8523::typedefs::{PowerManagement, TimerB, TimerA, TimerBInterruptMode, Pcf8523U};
@@ -268,17 +268,43 @@ fn disable_weekday_alarm_ok() {
 }
 
 #[test]
-fn enable_battery_low_detection_ok() {
+fn enable_battery_low_detection_interrupt_internal_err() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_3, 0b0111_0000),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    let err = driver.enable_battery_low_detection_interrupt().unwrap_err();
+    assert_eq!(err, Internal);
+    i2c.done();
+}
+
+#[test]
+fn enable_battery_low_detection_itnerrupt_invalid_state_err() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_3, 0b1110_0000),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    let err = driver.enable_battery_low_detection_interrupt().unwrap_err();
+    assert_eq!(err, InvalidState);
+    i2c.done();
+}
+
+#[test]
+fn enable_battery_low_detection_interrupt_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_3, 0b0010_0000),
         i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0),
         i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b11_1000),
-        i2c_reg_read(PCF8523_CONTROL_3, 0b0010_0000),
         i2c_reg_write(PCF8523_CONTROL_3, 0b0010_0001),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
-    driver.enable_battery_low_detection().unwrap();
+    driver.enable_battery_low_detection_interrupt().unwrap();
     i2c.done();
 }
 
