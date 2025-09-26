@@ -1,9 +1,8 @@
-//! Demonstrates pulse mode for the second timer interrupt.
+//! Demonstrates the minute alarm interrupt by turning the LED off after one minute.
 //!
-//! In this example, the PCF8523 CLKOUT/INT1 pin is mapped to D11 and LED to D13. The LED state is
-//! toggled at 1Hz in the interrupt handler.
+//! In this example, the PCF8523 CLKOUT/INT1 pin is mapped to D11 and LED to D13.
 //!
-//! See datasheet section 8.9.4 and https://github.com/rp-rs/rp-hal/blob/main/rp2040-hal-examples/src/bin/gpio_irq_example.rs.
+//! See datasheet section 8.7.1 and https://github.com/rp-rs/rp-hal/blob/main/rp2040-hal-examples/src/bin/gpio_irq_example.rs.
 
 #![no_std]
 #![no_main]
@@ -22,6 +21,7 @@ use rp2040_hal::gpio::{FunctionI2C, FunctionSioInput, FunctionSioOutput, Pin, Pi
 use rp2040_hal::gpio::bank0::{Gpio2, Gpio3, Gpio11, Gpio13};
 use rp2040_hal::gpio::Interrupt::EdgeLow;
 use rp2040_hal::pac::{interrupt, I2C1};
+use nxp_pcf8523::datetime::Pcf8523DateTime;
 use nxp_pcf8523::Pcf8523;
 use nxp_pcf8523::typedefs::Pcf8523T;
 
@@ -35,8 +35,8 @@ pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_GD25Q64CS;
 type Int1Pin = Pin<Gpio11, FunctionSioInput, PullUp>;
 type LedPin = Pin<Gpio13, FunctionSioOutput, PullNone>;
 type Rtc = Pcf8523<I2C<I2C1, (Pin<Gpio2, FunctionI2C, PullUp>, Pin<Gpio3, FunctionI2C, PullUp>)>, Pcf8523T>;
-type Int1Led = (Int1Pin, LedPin);
-static GLOBAL_PINS: Mutex<RefCell<Option<Int1Led>>> = Mutex::new(RefCell::new(None));
+type Int1LedRtc = (Int1Pin, LedPin, Rtc);
+static GLOBALS: Mutex<RefCell<Option<Int1LedRtc>>> = Mutex::new(RefCell::new(None));
 
 const XOSC_CRYSTAL_FREQ_HZ: u32 = 12_000_000;
 
@@ -81,15 +81,18 @@ fn main() -> ! {
     );
 
     let mut pcf8523: Rtc = Pcf8523::new(i2c_bus, Pcf8523T {}).unwrap();
-    pcf8523.enable_second_timer_interrupt(true).unwrap();
-    // enable_second_timer_interrupt(...) will disable clkout which briefly pulls CLKOUT/INT1 low.
-    // this triggers the interrupt handler, so set the LED high after enabling the alarm.
+    let dt = Pcf8523DateTime::new(0, 0, 0, 8, 19, 25).unwrap();
+    pcf8523.set_datetime(dt).unwrap();
+    pcf8523.start().unwrap();
+    pcf8523.enable_minute_alarm(1).unwrap();
+    // enable_minute_alarm(...) will disable clkout which briefly pulls CLKOUT/INT1 low. to see the
+    // LED turn off after 1m, set it high after enabling the alarm.
     led_pin.set_high().unwrap();
 
     // Give away our pins by moving them into the `GLOBAL_PINS` variable.
     // We won't need to access them in the main thread again
     critical_section::with(|cs| {
-        GLOBAL_PINS.borrow(cs).replace(Some((int1_pin, led_pin)));
+        GLOBALS.borrow(cs).replace(Some((int1_pin, led_pin, pcf8523)));
     });
 
     // Unmask the IO_BANK0 IRQ so that the NVIC interrupt controller
@@ -109,25 +112,26 @@ fn main() -> ! {
 #[interrupt]
 fn IO_IRQ_BANK0() {
     // The `#[interrupt]` attribute covertly converts this to `&'static mut Option<LedAndButton>`
-    static mut INT1_LED: Option<Int1Led> = None;
+    static mut INT1_LED_RTC: Option<Int1LedRtc> = None;
 
     // This is one-time lazy initialisation. We steal the variables given to us
     // via `GLOBAL_PINS`.
-    if INT1_LED.is_none() {
+    if INT1_LED_RTC.is_none() {
         critical_section::with(|cs| {
-            *INT1_LED = GLOBAL_PINS.borrow(cs).take();
+            *INT1_LED_RTC = GLOBALS.borrow(cs).take();
         });
     }
 
     // Need to check if our Option<LedAndButtonPins> contains our pins
-    if let Some(gpios) = INT1_LED {
+    if let Some(globals) = INT1_LED_RTC {
         // borrow led and button by *destructuring* the tuple
         // these will be of type `&mut LedPin` and `&mut ButtonPin`, so we don't have
         // to move them back into the static after we use them
-        let (int1, led) = gpios;
+        let (int1, led, rtc) = globals;
         // toggle can't fail, but the embedded-hal traits always allow for it
         // we can discard the return value by assigning it to an unnamed variable
         let _ = led.toggle();
+        rtc.clear_alarm_interrupt().unwrap();
         // Our interrupt doesn't clear itself.
         // Do that now so we don't immediately jump back to this interrupt handler.
         int1.clear_interrupt(EdgeLow);
