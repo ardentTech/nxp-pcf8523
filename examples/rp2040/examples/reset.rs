@@ -1,4 +1,4 @@
-//! Post-Reset Register Validation Example
+//! Validates register states after reset.
 //!
 //! "A reset is automatically generated at power-on."
 //!

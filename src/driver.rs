@@ -248,7 +248,7 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
 
     /// Enables the second interrupt.
     /// - `pulsed` configures the interrupt as pulsed or permanently active
-    pub fn enable_second_interrupt(&mut self, pulsed: bool) -> Result<(), Pcf8523Error<I2C::Error>> {
+    pub fn enable_second_timer_interrupt(&mut self, pulsed: bool) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut control_1 = self.read_reg(PCF8523_CONTROL_1)?;
         set_bits(&mut control_1, 1, 2, 0b100);
         self.write_reg(PCF8523_CONTROL_1, control_1)?;

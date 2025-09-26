@@ -1,4 +1,6 @@
-//! Read Current Timestamp Example
+//! Reads the current timestamp and then blinks an LED. If the read fails then program crashes.
+//!
+//! Adjust `led_pin` for your board.
 #![no_std]
 #![no_main]
 
@@ -49,7 +51,7 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    let mut led: Pin<_, FunctionSioOutput, PullDown> = pins.gpio13.reconfigure();
+    let mut led_pin: Pin<_, FunctionSioOutput, PullDown> = pins.gpio13.reconfigure();
 
     // I2C
     let sda: Pin<_, FunctionI2C, PullUp> = pins.gpio2.reconfigure();
@@ -69,9 +71,8 @@ fn main() -> ! {
     pcf8523.start().unwrap();
 
     loop {
-        let now = pcf8523.now().unwrap();
-        let _timestamp = now.timestamp();
-        led.toggle().unwrap();
+        let _ = pcf8523.now().unwrap().timestamp();
+        led_pin.toggle().unwrap();
         timer.delay_ms(2_000);
     }
 }
