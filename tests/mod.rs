@@ -75,6 +75,19 @@ fn clear_alarm_interrupt_ok() {
 }
 
 #[test]
+fn clear_battery_switch_over_interrupt_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_3, 0b0011_1000),
+        i2c_reg_write(PCF8523_CONTROL_3, 0b0011_0000),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    driver.clear_battery_switch_over_interrupt().unwrap();
+    i2c.done();
+}
+
+#[test]
 fn clear_second_interrupt_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
@@ -151,7 +164,7 @@ fn disable_alarm_interrupt_ok() {
 }
 
 #[test]
-fn disable_battery_low_detection_ok() {
+fn disable_battery_low_detection_interrupt_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
         i2c_reg_read(PCF8523_CONTROL_3, 0b0010_0001),
@@ -159,7 +172,20 @@ fn disable_battery_low_detection_ok() {
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
-    driver.disable_battery_low_detection().unwrap();
+    driver.disable_battery_low_detection_interrupt().unwrap();
+    i2c.done();
+}
+
+#[test]
+fn disable_battery_switch_over_interrupt_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_3, 0b0011_0010),
+        i2c_reg_write(PCF8523_CONTROL_3, 0b0011_0000),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    driver.disable_battery_switch_over_interrupt().unwrap();
     i2c.done();
 }
 
@@ -305,6 +331,47 @@ fn enable_battery_low_detection_interrupt_ok() {
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
     driver.enable_battery_low_detection_interrupt().unwrap();
+    i2c.done();
+}
+
+#[test]
+fn enable_battery_switch_over_interrupt_internal_err() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_3, 0b1100_0000),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    let err = driver.enable_battery_switch_over_interrupt().unwrap_err();
+    assert_eq!(err, Internal);
+    i2c.done();
+}
+
+#[test]
+fn enable_battery_switch_over_interrupt_invalid_state_err() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_3, 0b0100_0000),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    let err = driver.enable_battery_switch_over_interrupt().unwrap_err();
+    assert_eq!(err, InvalidState);
+    i2c.done();
+}
+
+#[test]
+fn enable_battery_switch_over_interrupt_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_3, 0b1000_0000),
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0),
+        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b11_1000),
+        i2c_reg_write(PCF8523_CONTROL_3, 0b1000_0010),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    driver.enable_battery_switch_over_interrupt().unwrap();
     i2c.done();
 }
 

@@ -62,6 +62,15 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         self.write_reg(PCF8523_CONTROL_2, reg_val)
     }
 
+    /// Clears the battery switch-over interrupt.
+    pub fn clear_battery_switch_over_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_3)?;
+        // TODO check if enabled before continuing
+        set_bits(&mut reg_val, 0, 3, 0b1000);
+        self.write_reg(PCF8523_CONTROL_3, reg_val)
+    }
+
+
     /// Clears the second interrupt.
     pub fn clear_second_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
@@ -93,14 +102,22 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
     }
 
     /// Disables battery low detection.
-    pub fn disable_battery_low_detection(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+    pub fn disable_battery_low_detection_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_3)?;
         // TODO check if enabled before continuing
         set_bits(&mut reg_val, 0, 0, 0b1);
         self.write_reg(PCF8523_CONTROL_3, reg_val)
     }
 
-    /// Disables CLKOUT.
+    /// Disables the battery switch-over interrupt.
+    pub fn disable_battery_switch_over_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_3)?;
+        // TODO check if enabled before continuing
+        set_bits(&mut reg_val, 0, 1, 0b10);
+        self.write_reg(PCF8523_CONTROL_3, reg_val)
+    }
+
+    // TODO should this be public?
     fn disable_clkout(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut tmr_clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
         set_bits(&mut tmr_clkout_ctrl, 0b111, 3, 0b11_1000);
@@ -169,9 +186,9 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
 
     /// Enables battery low detection interrupt.
     ///
-    /// Power management must already be configured for battery low detection.
     /// Generates an interrupt on INT1 (open-drain) when battery voltage drops below 2.5V (typical).
     /// The generated interrupt can only be cleared by replacing the battery.
+    /// Power management must first be configured for battery low detection.
     pub fn enable_battery_low_detection_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_3)?;
         let pm_bits = get_bits(reg_val, 3, 5);
@@ -183,6 +200,30 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
                     PowerManagement::SwitchOverOffLowDetectionOn => {
                         self.disable_clkout()?;
                         set_bits(&mut reg_val, 1, 0, 0b1);
+                        self.write_reg(PCF8523_CONTROL_3, reg_val)
+                    }
+                    _ => Err(InvalidState)
+                }
+            }
+            Err(_) => Err(Internal)
+        }
+    }
+
+    /// Enables battery switch-over interrupt.
+    ///
+    /// Power management must first be configured for battery switch-over.
+    pub fn enable_battery_switch_over_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_CONTROL_3)?;
+        let pm_bits = get_bits(reg_val, 3, 5);
+        match PowerManagement::try_from(pm_bits) {
+            Ok(pm) => {
+                match pm {
+                    PowerManagement::SwitchOverStandardOnLowDetectionOn |
+                    PowerManagement::SwitchOverDirectOnLowDetectionOn |
+                    PowerManagement::SwitchOverStandardOnLowDetectionOff |
+                    PowerManagement::SwitchOverDirectOnLowDetectionOff => {
+                        self.disable_clkout()?;
+                        set_bits(&mut reg_val, 1, 1, 0b10);
                         self.write_reg(PCF8523_CONTROL_3, reg_val)
                     }
                     _ => Err(InvalidState)
