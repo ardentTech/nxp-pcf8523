@@ -1,4 +1,5 @@
-//! Reads the current timestamp and then blinks an LED. If the read fails then program crashes.
+//! Reads the current timestamp and then toggles LED state on  0.5Hz frequency. If the read fails
+//! then program crashes.
 //!
 //! Adjust `led_pin` for your board.
 #![no_std]

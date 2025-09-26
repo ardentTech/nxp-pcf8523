@@ -16,25 +16,20 @@ let dt = Pcf8523DateTime::new(13, 41, 13, 8, 21, 25).unwrap();
 pcf8523.set_datetime(dt).unwrap();
 pcf8523.set_power_management(PowerManagement::SwitchOverStandardOnLowDetectionOn).unwrap();
 pcf8523.start().unwrap();
-let now = pcf8523.now().unwrap();
-let timestamp = now.timestamp();
+let now = pcf8523.now().unwrap().timestamp();
 ```
 
-### Example
-The current example is based upon an [Adafruit Feather RP2040 RFM95](https://www.adafruit.com/product/5714) with an
+### Examples
+The examples are based upon an [Adafruit Feather RP2040 RFM95](https://www.adafruit.com/product/5714) with an
 [Adalogger FeatherWing RTC + SD](https://www.adafruit.com/product/2922) (which has an on-board PCF8523):
 1. `$ cd examples/rp2040`
 2. Attach RP2040 feather target to host
-3. `$ cargo run --example now`
+3. Flash an example: `$ cargo run --example now`
 4. Attach featherwing to feather
 5. Press reset btn on featherwing
-6. The on-board LED will toggle on a 2s interval
 
 ### Tests
 From the root dir: `$ cargo test`
-
-### TODO
-* Hardware tests
 
 ### Resources
 [Datasheet](www.nxp.com/docs/en/data-sheet/PCF8523.pdf)

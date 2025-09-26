@@ -1,6 +1,6 @@
-//! Validates register states after reset.
+//! Validates register states after a software reset.
 //!
-//! "A reset is automatically generated at power-on."
+//! NOTE: "A reset is automatically generated at power-on."
 //!
 //! See datasheet section 8.3 table 10
 
