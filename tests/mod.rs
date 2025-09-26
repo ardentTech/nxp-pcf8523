@@ -6,7 +6,7 @@ use nxp_pcf8523::driver::{Pcf8523, Pcf8523Error, PCF8523_I2C_ADDRESS};
 use nxp_pcf8523::driver::Pcf8523Error::{Internal, InvalidArgument, InvalidState};
 use nxp_pcf8523::registers::*;
 use nxp_pcf8523::typedefs::CorrectionMode::{Fast, Slow};
-use nxp_pcf8523::typedefs::{PowerManagement, TimerB, TimerA, TimerBInterruptMode, Pcf8523U};
+use nxp_pcf8523::typedefs::{PowerManagement, TimerB, TimerA, TimerBInterruptMode, Pcf8523U, ClkOut};
 use nxp_pcf8523::typedefs::TimerSourceClock::{Frequency1Hz, Frequency1_60Hz};
 use nxp_pcf8523::typedefs::LowPulseWidth::Width93_750ms;
 use nxp_pcf8523::typedefs::Pcf8523T;
@@ -20,7 +20,7 @@ fn calibrate_offset_below_floor_err() {
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
-    let err = driver.calibrate(Fast, -65).unwrap_err();
+    let err = driver.set_offset(Fast, -65).unwrap_err();
     assert_eq!(err, InvalidArgument);
     i2c.done();
 }
@@ -32,7 +32,7 @@ fn calibrate_offset_above_ceiling_err() {
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
-    let err = driver.calibrate(Fast, 64).unwrap_err();
+    let err = driver.set_offset(Fast, 64).unwrap_err();
     assert_eq!(err, InvalidArgument);
     i2c.done();
 }
@@ -45,7 +45,7 @@ fn calibrate_offset_fast_ok() {
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
-    driver.calibrate(Fast, 15).unwrap();
+    driver.set_offset(Fast, 15).unwrap();
     i2c.done();
 }
 
@@ -57,7 +57,7 @@ fn calibrate_offset_slow_ok() {
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
-    driver.calibrate(Slow, -15).unwrap();
+    driver.set_offset(Slow, -15).unwrap();
     i2c.done();
 }
 
@@ -71,6 +71,18 @@ fn clear_alarm_interrupt_ok() {
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
     driver.clear_alarm_interrupt().unwrap();
+    i2c.done();
+}
+
+#[test]
+fn clear_battery_switch_over_interrupt_already_cleared_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_CONTROL_3, 0b0011_0000),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    driver.clear_battery_switch_over_interrupt().unwrap();
     i2c.done();
 }
 
@@ -376,10 +388,38 @@ fn enable_battery_switch_over_interrupt_ok() {
 }
 
 #[test]
+fn enable_correction_interrupt_invalid_state_err() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_OFFSET, 0b0),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    let err = driver.enable_correction_interrupt().unwrap_err();
+    assert_eq!(err, InvalidState);
+    i2c.done();
+}
+#[test]
+fn enable_correction_interrupt_already_enabled_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_OFFSET, 0b1),
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0010_0101),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    driver.enable_correction_interrupt().unwrap();
+    i2c.done();
+}
+
+#[test]
 fn enable_correction_interrupt_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_OFFSET, 0b1),
         i2c_reg_read(PCF8523_CONTROL_1, 0b0010_0100),
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0),
+        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b11_1000),
         i2c_reg_write(PCF8523_CONTROL_1, 0b0010_0101),
     ];
     let mut i2c = I2cMock::new(&expectations);
@@ -758,6 +798,32 @@ fn running_true() {
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
     assert!(driver.running().unwrap());
+    i2c.done();
+}
+
+#[test]
+fn set_clkout_max_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b1100_0000),
+        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b1100_0000),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    driver.set_clkout(ClkOut::Frequency32_768Hz).unwrap();
+    i2c.done();
+}
+
+#[test]
+fn set_clkout_min_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b1100_0000),
+        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b1111_1000),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    driver.set_clkout(ClkOut::Frequency0Hz).unwrap();
     i2c.done();
 }
 

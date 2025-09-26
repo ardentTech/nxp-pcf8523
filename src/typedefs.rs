@@ -1,4 +1,16 @@
 #[derive(Copy, Clone)]
+pub enum ClkOut {
+    Frequency32_768Hz = 0x0,
+    Frequency16_384Hz = 0x1,
+    Frequency8_192Hz = 0x2,
+    Frequency4_096Hz = 0x3,
+    Frequency1_024Hz = 0x4,
+    Frequency32Hz = 0x5,
+    Frequency1Hz = 0x6,
+    Frequency0Hz = 0x7,
+}
+
+#[derive(Copy, Clone)]
 pub enum CorrectionMode {
     /// Correction is triggered every minute for faster adjustment but more power consumption.
     /// Pulses are then applied once per second.
@@ -87,15 +99,15 @@ impl Variant for Pcf8523TK {}
 impl Variant for Pcf8523TS {}
 impl Variant for Pcf8523U {}
 
-/// Trait for chip variants which have a physical CLKOUT pin
-pub(crate) trait ClkOut {}
-impl ClkOut for Pcf8523TS {}
-impl ClkOut for Pcf8523U {}
+/// Trait for chip variants which have a physical CLKOUT/INT1 pin
+pub(crate) trait ClkOutInt1Pin {}
+impl ClkOutInt1Pin for Pcf8523TS {}
+impl ClkOutInt1Pin for Pcf8523U {}
 
 /// Trait for chip variants which have a physical INT2 pin
-pub trait Int2 {}
-impl Int2 for Pcf8523TS {}
-impl Int2 for Pcf8523U {}
+pub trait Int2Pin {}
+impl Int2Pin for Pcf8523TS {}
+impl Int2Pin for Pcf8523U {}
 
 #[derive(Copy, Clone)]
 pub enum TimerAInterruptMode {
