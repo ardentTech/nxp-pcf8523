@@ -51,16 +51,10 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
     }
 
     /// Clears the battery switch-over interrupt.
-    ///
-    /// If the flag is already cleared, the function will short circuit.
     pub fn clear_battery_switch_over_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_3)?;
-        if get_bits(reg_val, 1, 3) == 1 {
-            set_bits(&mut reg_val, 0, 3, 0b1000);
-            self.write_reg(PCF8523_CONTROL_3, reg_val)
-        } else {
-            Ok(())
-        }
+        set_bits(&mut reg_val, 0, 3, 0b1000);
+        self.write_reg(PCF8523_CONTROL_3, reg_val)
     }
 
     /// Clears the second interrupt.
@@ -96,12 +90,8 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
     /// Disables battery low detection.
     pub fn disable_battery_low_detection_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_3)?;
-        if get_bits(reg_val, 1, 0) == 1 {
-            set_bits(&mut reg_val, 0, 0, 0b1);
-            self.write_reg(PCF8523_CONTROL_3, reg_val)
-        } else {
-            Ok(())
-        }
+        set_bits(&mut reg_val, 0, 0, 0b1);
+        self.write_reg(PCF8523_CONTROL_3, reg_val)
     }
 
     /// Disables the battery switch-over interrupt.
@@ -122,24 +112,21 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
     pub fn disable_day_alarm(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_DAY_ALARM)?;
         set_bits(&mut reg_val, 1, 7, 0b1000_0000);
-        self.write_reg(PCF8523_DAY_ALARM, reg_val)?;
-        Ok(())
+        self.write_reg(PCF8523_DAY_ALARM, reg_val)
     }
 
     /// Disables the hour alarm while leaving the configured hour value intact.
     pub fn disable_hour_alarm(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_HOUR_ALARM)?;
         set_bits(&mut reg_val, 1, 7, 0b1000_0000);
-        self.write_reg(PCF8523_HOUR_ALARM, reg_val)?;
-        Ok(())
+        self.write_reg(PCF8523_HOUR_ALARM, reg_val)
     }
 
     /// Disables the minute alarm while leaving the configured minute value intact.
     pub fn disable_minute_alarm(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_MINUTE_ALARM)?;
         set_bits(&mut reg_val, 1, 7, 0b1000_0000);
-        self.write_reg(PCF8523_MINUTE_ALARM, reg_val)?;
-        Ok(())
+        self.write_reg(PCF8523_MINUTE_ALARM, reg_val)
     }
 
     /// Disables the second interrupt.
@@ -160,8 +147,7 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
     pub fn disable_weekday_alarm(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_WEEKDAY_ALARM)?;
         set_bits(&mut reg_val, 1, 7, 0b1000_0000);
-        self.write_reg(PCF8523_WEEKDAY_ALARM, reg_val)?;
-        Ok(())
+        self.write_reg(PCF8523_WEEKDAY_ALARM, reg_val)
     }
 
     /// Enables the alarm interrupt.
@@ -222,18 +208,13 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
 
     /// Enables the correction interrupt, which pulses on every correction cycle.
     ///
-    /// If no offset is configured, the driver state is considered invalid. If the flag is already
-    /// cleared, the function will short circuit.
+    /// If no offset is configured, the driver state is considered invalid.
     pub fn enable_correction_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         if self.read_reg(PCF8523_OFFSET)? != 0 {
             let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
-            if get_bits(reg_val, 1, 0) == 0 {
-                set_bits(&mut reg_val, 1, 0, 0b1);
-                self.set_clkout(ClkOut::Frequency0Hz)?;
-                self.write_reg(PCF8523_CONTROL_1, reg_val)
-            } else {
-                Ok(())
-            }
+            set_bits(&mut reg_val, 1, 0, 0b1);
+            self.set_clkout(ClkOut::Frequency0Hz)?;
+            self.write_reg(PCF8523_CONTROL_1, reg_val)
         } else {
             Err(InvalidState)
         }
@@ -245,8 +226,7 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         if day == 0 || day > 31 { return Err(InvalidArgument) }
         self.set_clkout(ClkOut::Frequency0Hz)?;
         self.write_reg(PCF8523_DAY_ALARM, (0 << 7) | encode_bcd(day))?;
-        self.enable_alarm_interrupt()?;
-        Ok(())
+        self.enable_alarm_interrupt()
     }
 
     /// Enables the hour alarm.
@@ -255,8 +235,7 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         if hour > 23 { return Err(InvalidArgument) }
         self.set_clkout(ClkOut::Frequency0Hz)?;
         self.write_reg(PCF8523_HOUR_ALARM, (0 << 7) | encode_bcd(hour))?;
-        self.enable_alarm_interrupt()?;
-        Ok(())
+        self.enable_alarm_interrupt()
     }
 
     /// Enables the minute alarm.
@@ -265,8 +244,7 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         if minute > 59 { return Err(InvalidArgument) }
         self.set_clkout(ClkOut::Frequency0Hz)?;
         self.write_reg(PCF8523_MINUTE_ALARM, (0 << 7) | encode_bcd(minute))?;
-        self.enable_alarm_interrupt()?;
-        Ok(())
+        self.enable_alarm_interrupt()
     }
 
     /// Enables the second interrupt.
@@ -302,8 +280,7 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         if weekday > 6 { return Err(InvalidArgument) }
         self.set_clkout(ClkOut::Frequency0Hz)?;
         self.write_reg(PCF8523_WEEKDAY_ALARM, (0 << 7) | weekday)?;
-        self.enable_alarm_interrupt()?;
-        Ok(())
+        self.enable_alarm_interrupt()
     }
 
     /// Determines if the module was initialized.
@@ -401,8 +378,7 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
     pub fn set_power_management(&mut self, power_management: PowerManagement) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_3)?;
         set_bits(&mut reg_val, power_management as u8, 5, 0b1110_0000);
-        self.write_reg(PCF8523_CONTROL_3, reg_val)?;
-        Ok(())
+        self.write_reg(PCF8523_CONTROL_3, reg_val)
     }
 
     /// Calibrate for aging adjustment, temperature compensation and accuracy tuning.
@@ -417,14 +393,11 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         self.write_reg(PCF8523_OFFSET, reg_val)
     }
 
-    /// Starts the module, if not already started.
+    /// Starts the RTC time circuits.
     pub fn start(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
-        if get_bits(reg_val, 1, 5) == 1 {
-            set_bits(&mut reg_val, 0, 5, 0b10_0000);
-            self.write_reg(PCF8523_CONTROL_1, reg_val)?
-        }
-        Ok(())
+        set_bits(&mut reg_val, 0, 5, 0b10_0000);
+        self.write_reg(PCF8523_CONTROL_1, reg_val)
     }
 
     /// Starts Timer A.
@@ -457,14 +430,11 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         self.write_reg(PCF8523_TMR_A_REG, timer.countdown)
     }
 
-    /// Stops the module, if not already stopped.
+    /// Stops the RTC time circuits.
     pub fn stop(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
-        if get_bits(reg_val, 1, 5) == 0 {
-            set_bits(&mut reg_val, 1, 5, 0b10_0000);
-            self.write_reg(PCF8523_CONTROL_1, reg_val)?
-        }
-        Ok(())
+        set_bits(&mut reg_val, 1, 5, 0b10_0000);
+        self.write_reg(PCF8523_CONTROL_1, reg_val)
     }
 
     /// Stops Timer A.
