@@ -8,7 +8,6 @@ use crate::typedefs::TimerMode::{Countdown, Watchdog};
 
 /// Fixed I2C address of RTC module
 pub const PCF8523_I2C_ADDRESS: u8 = 0x68;
-const PCF8523_CONTROL_3_DEFAULT: u8 = 0b1110_0000;
 
 #[derive(Debug, PartialEq)]
 pub enum Pcf8523Error<E> {
@@ -281,11 +280,6 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         self.set_clkout(ClkOut::Frequency0Hz)?;
         self.write_reg(PCF8523_WEEKDAY_ALARM, (0 << 7) | weekday)?;
         self.enable_alarm_interrupt()
-    }
-
-    /// Determines if the module was initialized.
-    pub fn initialized(&mut self) -> Result<bool, Pcf8523Error<I2C::Error>> {
-        Ok((self.read_reg(PCF8523_CONTROL_3)? & PCF8523_CONTROL_3_DEFAULT) != PCF8523_CONTROL_3_DEFAULT)
     }
 
     /// Determines if the module lost power.

@@ -600,30 +600,6 @@ fn get_datetime_ok() {
 }
 
 #[test]
-fn initialized_false() {
-    let expectations = [
-        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
-        i2c_reg_read(PCF8523_CONTROL_3, 0b1110_0000)
-    ];
-    let mut i2c = I2cMock::new(&expectations);
-    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
-    assert!(!driver.initialized().unwrap());
-    i2c.done();
-}
-
-#[test]
-fn initialized_true() {
-    let expectations = [
-        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
-        i2c_reg_read(PCF8523_CONTROL_3, 0b0)
-    ];
-    let mut i2c = I2cMock::new(&expectations);
-    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
-    assert!(driver.initialized().unwrap());
-    i2c.done();
-}
-
-#[test]
 fn lost_power_false() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
