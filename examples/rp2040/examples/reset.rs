@@ -1,4 +1,4 @@
-//! Validates register states after a software reset.
+//! Demonstrates a software reset and then validates relevant register states according to spec.
 //!
 //! NOTE: "A reset is automatically generated at power-on."
 //!
@@ -11,16 +11,16 @@ extern crate nxp_pcf8523;
 
 use embedded_hal::delay::DelayNs;
 use embedded_hal::digital::StatefulOutputPin;
+use nxp_pcf8523::Pcf8523;
 use nxp_pcf8523::registers::*;
 use nxp_pcf8523::typedefs::Pcf8523T;
-use nxp_pcf8523::Pcf8523;
 use panic_halt as _;
 use rp2040_hal::clocks::init_clocks_and_plls;
 use rp2040_hal::fugit::RateExtU32;
-use rp2040_hal::gpio::bank0::{Gpio13, Gpio2, Gpio3};
+use rp2040_hal::gpio::bank0::{Gpio2, Gpio3, Gpio13};
 use rp2040_hal::gpio::{FunctionI2C, FunctionSioOutput, Pin, Pins, PullDown, PullUp};
 use rp2040_hal::pac::I2C1;
-use rp2040_hal::{pac, Sio, Timer, Watchdog, I2C};
+use rp2040_hal::{I2C, Sio, Timer, Watchdog, pac};
 
 /// The linker will place this boot block at the start of our program image. We
 /// need this to help the ROM bootloader get our code up and running.

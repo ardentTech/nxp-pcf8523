@@ -1,9 +1,12 @@
 # NXP PCF8523
-`#![no_std]` driver for the NXP PCF8523 RTC and calendar module built on top of the Rust [embedded-hal](https://github.com/rust-embedded/embedded-hal). Supported
-I2C modes include standard (100 kHz), fast (400 kHz) and fast+ (1000 kHz), and the module has a fixed I2C address of
+
+`#![no_std]` driver for the NXP PCF8523 RTC and calendar module built on top of the
+Rust [embedded-hal](https://github.com/rust-embedded/embedded-hal). Supported
+I2C modes include standard (100 kHz), fast (400 kHz) and fast+ (1_000 kHz), and the module has a fixed I2C address of
 `0x68`.
 
 ### Usage
+
 ```rust
 use nxp_pcf8523::Pcf8523;
 use nxp_pcf8523::datetime::Pcf8523DateTime;
@@ -20,23 +23,26 @@ let now = pcf8523.now().unwrap().timestamp();
 ```
 
 ### Examples
-The examples are based upon an [Adafruit Feather RP2040 RFM95](https://www.adafruit.com/product/5714) with an
-[Adalogger FeatherWing RTC + SD](https://www.adafruit.com/product/2922) (which has an on-board PCF8523):
-1. `$ cd examples/rp2040`
-2. Attach RP2040 feather target to host
-3. Flash an example: `$ cargo run --example now`
-4. Attach featherwing to feather
-5. Press reset btn on featherwing
+
+* [RP2040](https://github.com/ardentTech/nxp-pcf8523/tree/main/examples/rp2040)
 
 ### Tests
+
 From the root dir: `$ cargo test`
 
+### TODO
+
+* Async
+
 ### Resources
-[Datasheet](www.nxp.com/docs/en/data-sheet/PCF8523.pdf)
+
+* [Datasheet](www.nxp.com/docs/en/data-sheet/PCF8523.pdf)
 
 ### Acknowledgements
+
 * [RTClib](https://github.com/adafruit/RTClib)
 
 ### License
+
 * [MIT](https://github.com/ardentTech/nxp-pcf8523/blob/main/LICENSE-MIT)
 * [Apache](https://github.com/ardentTech/nxp-pcf8523/blob/main/LICENSE-APACHE)

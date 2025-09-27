@@ -1,8 +1,7 @@
-//! Demonstrates the minute alarm interrupt by turning the LED off after one minute.
+//! Demonstrates the minute alarm interrupt by turning the LED off one minute after starting the
+//! PCF8523 module.
 //!
-//! In this example, the PCF8523 CLKOUT/INT1 pin is mapped to D11 and LED to D13.
-//!
-//! See datasheet section 8.7.1 and https://github.com/rp-rs/rp-hal/blob/main/rp2040-hal-examples/src/bin/gpio_irq_example.rs.
+//! See datasheet section 8.7.1
 
 #![no_std]
 #![no_main]
@@ -13,19 +12,19 @@ use core::cell::RefCell;
 use cortex_m::asm::wfi;
 use critical_section::Mutex;
 use embedded_hal::digital::{OutputPin, StatefulOutputPin};
+use nxp_pcf8523::Pcf8523;
 use nxp_pcf8523::datetime::Pcf8523DateTime;
 use nxp_pcf8523::typedefs::Pcf8523T;
-use nxp_pcf8523::Pcf8523;
 use panic_halt as _;
 use rp2040_hal::clocks::init_clocks_and_plls;
 use rp2040_hal::fugit::RateExtU32;
-use rp2040_hal::gpio::bank0::{Gpio11, Gpio13, Gpio2, Gpio3};
 use rp2040_hal::gpio::Interrupt::EdgeLow;
+use rp2040_hal::gpio::bank0::{Gpio2, Gpio3, Gpio11, Gpio13};
 use rp2040_hal::gpio::{
     FunctionI2C, FunctionSioInput, FunctionSioOutput, Pin, Pins, PullNone, PullUp,
 };
-use rp2040_hal::pac::{interrupt, I2C1};
-use rp2040_hal::{pac, Sio, Watchdog, I2C};
+use rp2040_hal::pac::{I2C1, interrupt};
+use rp2040_hal::{I2C, Sio, Watchdog, pac};
 
 /// The linker will place this boot block at the start of our program image. We
 /// need this to help the ROM bootloader get our code up and running.

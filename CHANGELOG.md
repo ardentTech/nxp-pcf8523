@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.0] - Unreleased
 
+### Added
+
+- RP2040 examples dir readme
+
 ### Changed
 
 - Standardize formatting with `rustfmt`
