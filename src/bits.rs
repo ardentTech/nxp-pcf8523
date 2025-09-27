@@ -6,7 +6,7 @@ pub(crate) const fn decode_bcd(a: u8) -> u8 {
 // Converts a binary value to BCD format
 pub(crate) const fn encode_bcd(a: u8) -> u8 {
     assert!(a < 100);
-    a % 10 | (a / 10 << 4)
+    (a % 10) | (a / 10) << 4
 }
 
 // Get a subset of bits from a byte
