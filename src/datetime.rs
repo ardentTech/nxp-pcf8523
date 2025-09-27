@@ -64,7 +64,7 @@ impl Pcf8523DateTime {
         }
     }
 
-    /// Gets a Unix timestamp representation of the datetime.
+    /// Generates the Unix timestamp representation of the datetime.
     pub fn timestamp(&self) -> u32 {
         SECONDS_FROM_1970_TO_2000
             + ((self.days_since_2000() * 24 + (self.hour as u32)) * 60 + (self.minute as u32)) * 60
@@ -84,7 +84,7 @@ impl Pcf8523DateTime {
         days
     }
 
-    fn validate_date(day: u8, month: u8, year: u8) -> bool {
+    const fn validate_date(day: u8, month: u8, year: u8) -> bool {
         if day == 0 || month == 0 || month > 12 || year > 99 {
             false
         } else if month == 2 && (year == 0 || year % 4 == 0) {
@@ -94,7 +94,7 @@ impl Pcf8523DateTime {
         }
     }
 
-    fn validate_time(seconds: u8, minutes: u8, hours: u8) -> bool {
+    const fn validate_time(seconds: u8, minutes: u8, hours: u8) -> bool {
         seconds < 60 && minutes < 60 && hours < 24
     }
 }

@@ -1,23 +1,21 @@
 // Converts a BCD value to binary format
-pub(crate) fn decode_bcd(a: u8) -> u8 {
+pub(crate) const fn decode_bcd(a: u8) -> u8 {
     (((a >> 4) & 0xf) * 10) + (a & 0xf)
 }
 
 // Converts a binary value to BCD format
-pub(crate) fn encode_bcd(a: u8) -> u8 {
-    if a >= 100 {
-        panic!("Cannot BCD encode value {} as u8", a);
-    }
+pub(crate) const fn encode_bcd(a: u8) -> u8 {
+    assert!(a < 100);
     a % 10 | (a / 10 << 4)
 }
 
 // Get a subset of bits from a byte
-pub(crate) fn get_bits(byte: u8, num_bits: u8, lsb_offset: u8) -> u8 {
+pub(crate) const fn get_bits(byte: u8, num_bits: u8, lsb_offset: u8) -> u8 {
     (byte >> lsb_offset) & ((1 << (num_bits)) - 1)
 }
 
 // Set bits on a byte
-pub(crate) fn set_bits(byte: &mut u8, bits: u8, lsb_offset: u8, mask: u8) {
+pub(crate) const fn set_bits(byte: &mut u8, bits: u8, lsb_offset: u8, mask: u8) {
     *byte &= !mask;
     *byte |= (bits << lsb_offset) & mask
 }

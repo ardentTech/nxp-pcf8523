@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Apply rustfmt
+- Standardize formatting with `rustfmt`
+- Mark functions as `const` where appropriate
 
 ## [0.4.0] - 2025-09-26
 
