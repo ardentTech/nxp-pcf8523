@@ -9,14 +9,14 @@ extern crate nxp_pcf8523;
 
 use embedded_hal::delay::DelayNs;
 use embedded_hal::digital::StatefulOutputPin;
+use nxp_pcf8523::datetime::Pcf8523DateTime;
+use nxp_pcf8523::typedefs::Pcf8523T;
+use nxp_pcf8523::Pcf8523;
 use panic_halt as _;
-use rp2040_hal::{pac, Sio, Timer, Watchdog, I2C};
 use rp2040_hal::clocks::init_clocks_and_plls;
 use rp2040_hal::fugit::RateExtU32;
 use rp2040_hal::gpio::{FunctionI2C, FunctionSioOutput, Pin, Pins, PullDown, PullUp};
-use nxp_pcf8523::datetime::Pcf8523DateTime;
-use nxp_pcf8523::Pcf8523;
-use nxp_pcf8523::typedefs::Pcf8523T;
+use rp2040_hal::{pac, Sio, Timer, Watchdog, I2C};
 
 /// The linker will place this boot block at the start of our program image. We
 /// need this to help the ROM bootloader get our code up and running.
@@ -41,8 +41,8 @@ fn main() -> ! {
         &mut pac.RESETS,
         &mut watchdog,
     )
-        .ok()
-        .unwrap();
+    .ok()
+    .unwrap();
     let mut timer = Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
     let sio = Sio::new(pac.SIO);
     let pins = Pins::new(

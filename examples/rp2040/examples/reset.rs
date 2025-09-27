@@ -11,16 +11,16 @@ extern crate nxp_pcf8523;
 
 use embedded_hal::delay::DelayNs;
 use embedded_hal::digital::StatefulOutputPin;
-use panic_halt as _;
-use rp2040_hal::{pac, Sio, Timer, Watchdog, I2C};
-use rp2040_hal::clocks::init_clocks_and_plls;
-use rp2040_hal::fugit::RateExtU32;
-use rp2040_hal::gpio::{FunctionI2C, FunctionSioOutput, Pin, Pins, PullDown, PullUp};
-use rp2040_hal::gpio::bank0::{Gpio13, Gpio2, Gpio3};
-use rp2040_hal::pac::I2C1;
-use nxp_pcf8523::Pcf8523;
 use nxp_pcf8523::registers::*;
 use nxp_pcf8523::typedefs::Pcf8523T;
+use nxp_pcf8523::Pcf8523;
+use panic_halt as _;
+use rp2040_hal::clocks::init_clocks_and_plls;
+use rp2040_hal::fugit::RateExtU32;
+use rp2040_hal::gpio::bank0::{Gpio13, Gpio2, Gpio3};
+use rp2040_hal::gpio::{FunctionI2C, FunctionSioOutput, Pin, Pins, PullDown, PullUp};
+use rp2040_hal::pac::I2C1;
+use rp2040_hal::{pac, Sio, Timer, Watchdog, I2C};
 
 /// The linker will place this boot block at the start of our program image. We
 /// need this to help the ROM bootloader get our code up and running.
@@ -30,7 +30,16 @@ use nxp_pcf8523::typedefs::Pcf8523T;
 pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_GD25Q64CS;
 
 type LedPin = Pin<Gpio13, FunctionSioOutput, PullDown>;
-type Rtc = Pcf8523<I2C<I2C1, (Pin<Gpio2, FunctionI2C, PullUp>, Pin<Gpio3, FunctionI2C, PullUp>)>, Pcf8523T>;
+type Rtc = Pcf8523<
+    I2C<
+        I2C1,
+        (
+            Pin<Gpio2, FunctionI2C, PullUp>,
+            Pin<Gpio3, FunctionI2C, PullUp>,
+        ),
+    >,
+    Pcf8523T,
+>;
 
 const XOSC_CRYSTAL_FREQ_HZ: u32 = 12_000_000;
 
@@ -48,8 +57,8 @@ fn main() -> ! {
         &mut pac.RESETS,
         &mut watchdog,
     )
-        .ok()
-        .unwrap();
+    .ok()
+    .unwrap();
     let mut timer = Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
     let sio = Sio::new(pac.SIO);
     let pins = Pins::new(
@@ -104,34 +113,54 @@ fn get_bits(byte: u8, num_bits: u8, lsb_offset: u8) -> u8 {
 }
 
 fn validate_reset(rtc: &mut Rtc) -> Result<(), u8> {
-    if  rtc.read_reg(PCF8523_CONTROL_1).unwrap() != 0b0 { return Err(PCF8523_CONTROL_1) }
+    if rtc.read_reg(PCF8523_CONTROL_1).unwrap() != 0b0 {
+        return Err(PCF8523_CONTROL_1);
+    }
 
-    if rtc.read_reg(PCF8523_CONTROL_2).unwrap() != 0b0 { return Err(PCF8523_CONTROL_2) }
+    if rtc.read_reg(PCF8523_CONTROL_2).unwrap() != 0b0 {
+        return Err(PCF8523_CONTROL_2);
+    }
 
     let control_3 = rtc.read_reg(PCF8523_CONTROL_3).unwrap();
-    if (control_3 >> 5) != 0b111 || get_bits(control_3, 4, 0) != 0b0 { return Err(PCF8523_CONTROL_3); }
+    if (control_3 >> 5) != 0b111 || get_bits(control_3, 4, 0) != 0b0 {
+        return Err(PCF8523_CONTROL_3);
+    }
 
-    if get_bits(rtc.read_reg(PCF8523_SECONDS).unwrap(), 1, 7) != 0b1 { return Err(PCF8523_SECONDS) }
+    if get_bits(rtc.read_reg(PCF8523_SECONDS).unwrap(), 1, 7) != 0b1 {
+        return Err(PCF8523_SECONDS);
+    }
 
-    if get_bits(rtc.read_reg(PCF8523_MINUTE_ALARM).unwrap(), 1, 7) != 0b1 { return Err(PCF8523_MINUTE_ALARM) }
+    if get_bits(rtc.read_reg(PCF8523_MINUTE_ALARM).unwrap(), 1, 7) != 0b1 {
+        return Err(PCF8523_MINUTE_ALARM);
+    }
 
-    if get_bits(rtc.read_reg(PCF8523_HOUR_ALARM).unwrap(), 1, 7) != 0b1 { return Err(PCF8523_HOUR_ALARM) }
+    if get_bits(rtc.read_reg(PCF8523_HOUR_ALARM).unwrap(), 1, 7) != 0b1 {
+        return Err(PCF8523_HOUR_ALARM);
+    }
 
-    if get_bits(rtc.read_reg(PCF8523_DAY_ALARM).unwrap(), 1, 7) != 0b1 { return Err(PCF8523_DAY_ALARM) }
+    if get_bits(rtc.read_reg(PCF8523_DAY_ALARM).unwrap(), 1, 7) != 0b1 {
+        return Err(PCF8523_DAY_ALARM);
+    }
 
-    if get_bits(rtc.read_reg(PCF8523_WEEKDAY_ALARM).unwrap(), 1, 7) != 0b1 { return Err(PCF8523_WEEKDAY_ALARM) }
+    if get_bits(rtc.read_reg(PCF8523_WEEKDAY_ALARM).unwrap(), 1, 7) != 0b1 {
+        return Err(PCF8523_WEEKDAY_ALARM);
+    }
 
-    if rtc.read_reg(PCF8523_OFFSET).unwrap() != 0b0 { return Err(PCF8523_OFFSET) }
+    if rtc.read_reg(PCF8523_OFFSET).unwrap() != 0b0 {
+        return Err(PCF8523_OFFSET);
+    }
 
-    if rtc.read_reg(PCF8523_TMR_CLKOUT_CTRL).unwrap() != 0b0 { return Err(PCF8523_TMR_CLKOUT_CTRL) }
+    if rtc.read_reg(PCF8523_TMR_CLKOUT_CTRL).unwrap() != 0b0 {
+        return Err(PCF8523_TMR_CLKOUT_CTRL);
+    }
 
     if get_bits(rtc.read_reg(PCF8523_TMR_A_FREQ_CTRL).unwrap(), 3, 0) != 0b111 {
-        return Err(PCF8523_TMR_A_FREQ_CTRL)
+        return Err(PCF8523_TMR_A_FREQ_CTRL);
     }
 
     let tmr_b_freq_ctrl = rtc.read_reg(PCF8523_TMR_B_FREQ_CTRL).unwrap();
     if get_bits(tmr_b_freq_ctrl, 3, 4) != 0b0 || get_bits(tmr_b_freq_ctrl, 3, 0) != 0b111 {
-        return Err(PCF8523_TMR_B_FREQ_CTRL)
+        return Err(PCF8523_TMR_B_FREQ_CTRL);
     }
 
     Ok(())

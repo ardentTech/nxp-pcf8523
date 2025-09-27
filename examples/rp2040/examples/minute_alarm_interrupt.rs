@@ -13,17 +13,19 @@ use core::cell::RefCell;
 use cortex_m::asm::wfi;
 use critical_section::Mutex;
 use embedded_hal::digital::{OutputPin, StatefulOutputPin};
+use nxp_pcf8523::datetime::Pcf8523DateTime;
+use nxp_pcf8523::typedefs::Pcf8523T;
+use nxp_pcf8523::Pcf8523;
 use panic_halt as _;
-use rp2040_hal::{pac, Sio, Watchdog, I2C};
 use rp2040_hal::clocks::init_clocks_and_plls;
 use rp2040_hal::fugit::RateExtU32;
-use rp2040_hal::gpio::{FunctionI2C, FunctionSioInput, FunctionSioOutput, Pin, Pins, PullNone, PullUp};
-use rp2040_hal::gpio::bank0::{Gpio2, Gpio3, Gpio11, Gpio13};
+use rp2040_hal::gpio::bank0::{Gpio11, Gpio13, Gpio2, Gpio3};
 use rp2040_hal::gpio::Interrupt::EdgeLow;
+use rp2040_hal::gpio::{
+    FunctionI2C, FunctionSioInput, FunctionSioOutput, Pin, Pins, PullNone, PullUp,
+};
 use rp2040_hal::pac::{interrupt, I2C1};
-use nxp_pcf8523::datetime::Pcf8523DateTime;
-use nxp_pcf8523::Pcf8523;
-use nxp_pcf8523::typedefs::Pcf8523T;
+use rp2040_hal::{pac, Sio, Watchdog, I2C};
 
 /// The linker will place this boot block at the start of our program image. We
 /// need this to help the ROM bootloader get our code up and running.
@@ -34,7 +36,16 @@ pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_GD25Q64CS;
 
 type Int1Pin = Pin<Gpio11, FunctionSioInput, PullUp>;
 type LedPin = Pin<Gpio13, FunctionSioOutput, PullNone>;
-type Rtc = Pcf8523<I2C<I2C1, (Pin<Gpio2, FunctionI2C, PullUp>, Pin<Gpio3, FunctionI2C, PullUp>)>, Pcf8523T>;
+type Rtc = Pcf8523<
+    I2C<
+        I2C1,
+        (
+            Pin<Gpio2, FunctionI2C, PullUp>,
+            Pin<Gpio3, FunctionI2C, PullUp>,
+        ),
+    >,
+    Pcf8523T,
+>;
 type Int1LedRtc = (Int1Pin, LedPin, Rtc);
 static GLOBALS: Mutex<RefCell<Option<Int1LedRtc>>> = Mutex::new(RefCell::new(None));
 
@@ -54,8 +65,8 @@ fn main() -> ! {
         &mut pac.RESETS,
         &mut watchdog,
     )
-        .ok()
-        .unwrap();
+    .ok()
+    .unwrap();
     let sio = Sio::new(pac.SIO);
     let pins = Pins::new(
         pac.IO_BANK0,
@@ -92,7 +103,9 @@ fn main() -> ! {
     // Give away our pins by moving them into the `GLOBAL_PINS` variable.
     // We won't need to access them in the main thread again
     critical_section::with(|cs| {
-        GLOBALS.borrow(cs).replace(Some((int1_pin, led_pin, pcf8523)));
+        GLOBALS
+            .borrow(cs)
+            .replace(Some((int1_pin, led_pin, pcf8523)));
     });
 
     // Unmask the IO_BANK0 IRQ so that the NVIC interrupt controller

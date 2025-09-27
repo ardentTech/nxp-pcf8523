@@ -17,7 +17,7 @@ pub enum CorrectionMode {
     Fast = 0x1,
     /// Correction is triggered every two hours for slower adjustment but less power consumption.
     /// Pulses are then applied once per minute.
-    Slow = 0x0
+    Slow = 0x0,
 }
 
 #[derive(Copy, Clone)]
@@ -39,10 +39,9 @@ pub enum PowerManagement {
     SwitchOverDirectOnLowDetectionOff = 0x5,
     /// Battery switch-over function is disabled - only one power supply (VDD); battery low
     /// detection function is disabled.
-    SwitchOverOffLowDetectionOff = 0x7
+    SwitchOverOffLowDetectionOff = 0x7,
 }
 impl TryFrom<u8> for PowerManagement {
-
     type Error = ();
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
@@ -53,11 +52,10 @@ impl TryFrom<u8> for PowerManagement {
             0x4 => Ok(PowerManagement::SwitchOverStandardOnLowDetectionOff),
             0x5 => Ok(PowerManagement::SwitchOverDirectOnLowDetectionOff),
             0x7 => Ok(PowerManagement::SwitchOverOffLowDetectionOff),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
-
 
 #[derive(Copy, Clone)]
 pub enum TimerSourceClock {
@@ -65,7 +63,7 @@ pub enum TimerSourceClock {
     Frequency64Hz = 0x1,
     Frequency1Hz = 0x2,
     Frequency1_60Hz = 0x3,
-    Frequency1_3600Hz = 0x4
+    Frequency1_3600Hz = 0x4,
 }
 
 #[derive(Copy, Clone)]
@@ -87,7 +85,7 @@ pub struct Pcf8523T {}
 pub struct Pcf8523TK {}
 
 /// PCF8523TS chip variant
-pub struct  Pcf8523TS {}
+pub struct Pcf8523TS {}
 
 /// PCF8523U chip variant
 pub struct Pcf8523U {}
@@ -112,13 +110,13 @@ impl Int2Pin for Pcf8523U {}
 #[derive(Copy, Clone)]
 pub enum TimerAInterruptMode {
     PermanentlyActive,
-    Pulsed
+    Pulsed,
 }
 impl From<TimerAInterruptMode> for u8 {
     fn from(value: TimerAInterruptMode) -> Self {
         match value {
             TimerAInterruptMode::PermanentlyActive => 0x0,
-            TimerAInterruptMode::Pulsed => 0x1
+            TimerAInterruptMode::Pulsed => 0x1,
         }
     }
 }
@@ -126,13 +124,13 @@ impl From<TimerAInterruptMode> for u8 {
 #[derive(Copy, Clone)]
 pub enum TimerBInterruptMode {
     PermanentlyActive,
-    Pulsed(LowPulseWidth)
+    Pulsed(LowPulseWidth),
 }
 impl From<TimerBInterruptMode> for u8 {
     fn from(value: TimerBInterruptMode) -> Self {
         match value {
             TimerBInterruptMode::PermanentlyActive => 0x0,
-            TimerBInterruptMode::Pulsed(_) => 0x1
+            TimerBInterruptMode::Pulsed(_) => 0x1,
         }
     }
 }
@@ -140,13 +138,13 @@ impl From<TimerBInterruptMode> for u8 {
 #[derive(Copy, Clone, PartialEq)]
 pub enum TimerMode {
     Countdown,
-    Watchdog
+    Watchdog,
 }
 impl From<TimerMode> for u8 {
     fn from(value: TimerMode) -> Self {
         match value {
             TimerMode::Countdown => 0x1,
-            TimerMode::Watchdog => 0x2
+            TimerMode::Watchdog => 0x2,
         }
     }
 }
@@ -162,8 +160,18 @@ pub struct TimerA {
 }
 impl TimerA {
     /// Creates a new TimerA instance.
-    pub fn new(countdown: u8, interrupt_mode: TimerAInterruptMode, mode: TimerMode, source_clock: TimerSourceClock) -> Self {
-        Self { countdown, interrupt_mode, mode, source_clock }
+    pub fn new(
+        countdown: u8,
+        interrupt_mode: TimerAInterruptMode,
+        mode: TimerMode,
+        source_clock: TimerSourceClock,
+    ) -> Self {
+        Self {
+            countdown,
+            interrupt_mode,
+            mode,
+            source_clock,
+        }
     }
 }
 
@@ -175,7 +183,15 @@ pub struct TimerB {
 }
 impl TimerB {
     /// Creates a new TimerB instance.
-    pub fn new(countdown: u8, interrupt_mode: TimerBInterruptMode, source_clock: TimerSourceClock) -> Self {
-        Self { countdown, interrupt_mode, source_clock }
+    pub fn new(
+        countdown: u8,
+        interrupt_mode: TimerBInterruptMode,
+        source_clock: TimerSourceClock,
+    ) -> Self {
+        Self {
+            countdown,
+            interrupt_mode,
+            source_clock,
+        }
     }
 }

@@ -14,7 +14,6 @@ pub struct Pcf8523DateTime {
 }
 
 impl Pcf8523DateTime {
-
     /// Constructs a new datetime instance.
     /// - `hour` 0..23 (inclusive)
     /// - `minute` 0..59 (inclusive)
@@ -22,11 +21,25 @@ impl Pcf8523DateTime {
     /// - `month` 1..12 (inclusive)
     /// - `day` 1..31 (inclusive) is validated against month and year
     /// - `year` 0..99 (inclusive) offset from the year 2000
-    pub fn new(hours: u8, minutes: u8, seconds: u8, month: u8, day: u8, year: u8) -> Option<Pcf8523DateTime> {
+    pub fn new(
+        hours: u8,
+        minutes: u8,
+        seconds: u8,
+        month: u8,
+        day: u8,
+        year: u8,
+    ) -> Option<Pcf8523DateTime> {
         if !Self::validate_time(seconds, minutes, hours) || !Self::validate_date(day, month, year) {
             return None;
         }
-        Some(Self { second: seconds, minute: minutes, hour: hours, day, month, year })
+        Some(Self {
+            second: seconds,
+            minute: minutes,
+            hour: hours,
+            day,
+            month,
+            year,
+        })
     }
 
     pub(crate) fn bcd_decode(&self) -> Self {
@@ -53,15 +66,21 @@ impl Pcf8523DateTime {
 
     /// Gets a Unix timestamp representation of the datetime.
     pub fn timestamp(&self) -> u32 {
-        SECONDS_FROM_1970_TO_2000 + ((self.days_since_2000() * 24 + (self.hour as u32)) * 60 + (self.minute as u32)) * 60 + (self.second as u32)
+        SECONDS_FROM_1970_TO_2000
+            + ((self.days_since_2000() * 24 + (self.hour as u32)) * 60 + (self.minute as u32)) * 60
+            + (self.second as u32)
     }
 
     fn days_since_2000(&self) -> u32 {
-        let mut days: u32 = (0u32..(self.year as u32)).fold((self.day - 1) as u32, |acc, e| acc + if e % 4 != 0 { 365 } else { 366 });
+        let mut days: u32 = (0u32..(self.year as u32)).fold((self.day - 1) as u32, |acc, e| {
+            acc + if e % 4 != 0 { 365 } else { 366 }
+        });
         for m in 0..(self.month - 1) {
             days += DAYS_PER_MONTH[m as usize] as u32;
         }
-        if self.month > 1 && self.year % 4 == 0 { days += 1; }
+        if self.month > 1 && self.year % 4 == 0 {
+            days += 1;
+        }
         days
     }
 
@@ -98,7 +117,7 @@ mod tests {
 
     #[test]
     fn timestamp_multiple_leap_years_ok() {
-        let dt = Pcf8523DateTime::new( 15, 23, 11,8, 21, 25).unwrap();
+        let dt = Pcf8523DateTime::new(15, 23, 11, 8, 21, 25).unwrap();
         assert_eq!(dt.timestamp(), 1755789791);
     }
 
@@ -123,12 +142,10 @@ mod tests {
         assert!(!Pcf8523DateTime::validate_date(0, 1, 99))
     }
 
-
     #[test]
     fn validate_date_month_above_ceiling() {
         assert!(!Pcf8523DateTime::validate_date(31, 13, 99))
     }
-
 
     #[test]
     fn validate_date_month_below_floor() {

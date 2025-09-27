@@ -5,7 +5,9 @@ pub(crate) fn decode_bcd(a: u8) -> u8 {
 
 // Converts a binary value to BCD format
 pub(crate) fn encode_bcd(a: u8) -> u8 {
-    if a >= 100 { panic!("Cannot BCD encode value {} as u8", a); }
+    if a >= 100 {
+        panic!("Cannot BCD encode value {} as u8", a);
+    }
     a % 10 | (a / 10 << 4)
 }
 
