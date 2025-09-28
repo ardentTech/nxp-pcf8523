@@ -4,6 +4,7 @@ const DAYS_PER_MONTH: [u8; 12] = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
 const SECONDS_FROM_1970_TO_2000: u32 = 946684800;
 
 /// Simple datetime that supports 01.01.2000 to 12.31.2099 (inclusive).
+#[derive(Debug)]
 pub struct Pcf8523DateTime {
     pub second: u8,
     pub minute: u8,

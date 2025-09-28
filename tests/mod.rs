@@ -3,17 +3,17 @@ use embedded_hal::i2c::NoAcknowledgeSource::Address;
 use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
 use nxp_pcf8523::datetime::Pcf8523DateTime;
 use nxp_pcf8523::driver::Pcf8523Error::{Internal, InvalidArgument, InvalidState};
-use nxp_pcf8523::driver::{Pcf8523, Pcf8523Error, PCF8523_I2C_ADDRESS};
+use nxp_pcf8523::driver::{PCF8523_I2C_ADDRESS, Pcf8523, Pcf8523Error};
 use nxp_pcf8523::registers::*;
 use nxp_pcf8523::typedefs::CorrectionMode::{Fast, Slow};
 use nxp_pcf8523::typedefs::LowPulseWidth::Width93_750ms;
-use nxp_pcf8523::typedefs::Pcf8523T;
-use nxp_pcf8523::typedefs::TimerAInterruptMode::{PermanentlyActive, Pulsed};
+use nxp_pcf8523::typedefs::TimerInterruptMode::{PermanentlyActive, Pulsed};
 use nxp_pcf8523::typedefs::TimerMode::{Countdown, Watchdog};
-use nxp_pcf8523::typedefs::TimerSourceClock::{Frequency1Hz, Frequency1_60Hz};
+use nxp_pcf8523::typedefs::TimerSourceClock::{Frequency1_60Hz, Frequency1Hz};
 use nxp_pcf8523::typedefs::{
     ClkOut, Pcf8523U, PowerManagement, TimerA, TimerB, TimerBInterruptMode,
 };
+use nxp_pcf8523::typedefs::{Pcf8523T, TimerInterruptMode};
 
 #[test]
 fn calibrate_offset_below_floor_err() {
@@ -449,7 +449,9 @@ fn enable_second_timer_interrupt_pulsed_ok() {
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
-    driver.enable_second_timer_interrupt(true).unwrap();
+    driver
+        .enable_second_timer_interrupt(Pulsed)
+        .unwrap();
     i2c.done();
 }
 
@@ -464,7 +466,9 @@ fn enable_second_timer_interrupt_permanent_ok() {
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
-    driver.enable_second_timer_interrupt(false).unwrap();
+    driver
+        .enable_second_timer_interrupt(PermanentlyActive)
+        .unwrap();
     i2c.done();
 }
 

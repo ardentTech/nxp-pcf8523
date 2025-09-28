@@ -5,7 +5,7 @@ use crate::registers::*;
 use crate::typedefs::TimerMode::{Countdown, Watchdog};
 use crate::typedefs::{
     ClkOut, CorrectionMode, Int2Pin, PowerManagement, TimerA, TimerB, TimerBInterruptMode,
-    TimerMode, Variant,
+    TimerInterruptMode, TimerMode, Variant,
 };
 use embedded_hal::i2c::{I2c, Operation};
 
@@ -263,14 +263,14 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
     /// - `pulsed` configures the interrupt as pulsed or permanently active
     pub fn enable_second_timer_interrupt(
         &mut self,
-        pulsed: bool,
+        interrupt_mode: TimerInterruptMode,
     ) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut control_1 = self.read_reg(PCF8523_CONTROL_1)?;
         set_bits(&mut control_1, 1, 2, 0b100);
         self.write_reg(PCF8523_CONTROL_1, control_1)?;
 
         let mut clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
-        set_bits(&mut clkout_ctrl, pulsed as u8, 7, 0b1000_0000);
+        set_bits(&mut clkout_ctrl, interrupt_mode as u8, 7, 0b1000_0000);
         // disable CLKOUT
         set_bits(&mut clkout_ctrl, 0b111, 3, 0b11_1000);
         self.write_reg(PCF8523_TMR_CLKOUT_CTRL, clkout_ctrl)
