@@ -30,6 +30,8 @@ impl<E> From<E> for Pcf8523Error<E> {
 
 /// NXP PCF8523 hardware module driver
 /// - `I2C` HAL I2C bus interface
+/// - `V` chip variant
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct Pcf8523<I2C, V> {
     i2c: I2C,
