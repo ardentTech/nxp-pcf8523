@@ -101,11 +101,6 @@ impl Variant for Pcf8523TK {}
 impl Variant for Pcf8523TS {}
 impl Variant for Pcf8523U {}
 
-/// Trait for chip variants which have a physical CLKOUT/INT1 pin
-pub(crate) trait ClkOutInt1Pin {}
-impl ClkOutInt1Pin for Pcf8523TS {}
-impl ClkOutInt1Pin for Pcf8523U {}
-
 /// Trait for chip variants which have a physical INT2 pin
 pub trait Int2Pin {}
 impl Int2Pin for Pcf8523TS {}
