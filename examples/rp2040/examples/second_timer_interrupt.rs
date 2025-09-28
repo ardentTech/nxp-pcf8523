@@ -23,6 +23,7 @@ use rp2040_hal::gpio::{
 };
 use rp2040_hal::pac::{I2C1, interrupt};
 use rp2040_hal::{I2C, Sio, Watchdog, pac};
+use nxp_pcf8523::typedefs::TimerInterruptMode::Pulsed;
 
 /// The linker will place this boot block at the start of our program image. We
 /// need this to help the ROM bootloader get our code up and running.
@@ -89,7 +90,7 @@ fn main() -> ! {
     );
 
     let mut pcf8523: Rtc = Pcf8523::new(i2c_bus, Pcf8523T {}).unwrap();
-    pcf8523.start_second_timer(true).unwrap();
+    pcf8523.start_second_timer(Pulsed).unwrap();
     // enable_second_timer_interrupt(...) will disable clkout which briefly pulls CLKOUT/INT1 low.
     // this triggers the interrupt handler, so set the LED high after enabling the alarm.
     led_pin.set_high().unwrap();
