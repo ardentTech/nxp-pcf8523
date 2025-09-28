@@ -4,10 +4,7 @@ use crate::driver::Pcf8523Error::{Internal, InvalidArgument, InvalidState, Inval
 use crate::registers::*;
 use crate::typedefs::ClkOut::Frequency0Hz;
 use crate::typedefs::TimerMode::{Countdown, Watchdog};
-use crate::typedefs::{
-    ClkOut, CorrectionMode, Int2Pin, PowerManagement, TimerA, TimerB, TimerBInterruptMode,
-    TimerInterruptMode, TimerMode, Variant,
-};
+use crate::typedefs::*;
 use embedded_hal::i2c::{I2c, Operation};
 
 /// Fixed I2C address of RTC module
@@ -138,20 +135,6 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         let mut reg_val = self.read_reg(PCF8523_MINUTE_ALARM)?;
         set_bits(&mut reg_val, 1, 7, 0b1000_0000);
         self.write_reg(PCF8523_MINUTE_ALARM, reg_val)
-    }
-
-    /// Disables the second interrupt.
-    pub fn disable_second_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
-        set_bits(&mut reg_val, 0, 2, 0b100);
-        self.write_reg(PCF8523_CONTROL_1, reg_val)
-    }
-
-    /// Disables the Timer A interrupt.
-    pub fn disable_timer_a_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
-        set_bits(&mut reg_val, 0, 1, 0b110);
-        self.write_reg(PCF8523_CONTROL_2, reg_val)
     }
 
     /// Disables the weekday alarm while leaving the configured weekday value intact.
@@ -410,7 +393,7 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         self.write_reg(PCF8523_CONTROL_1, reg_val)
     }
 
-    /// Starts the second timer.
+    /// Starts the second timer and enables the interrupt.
     /// - `interrupt_mode` configures the interrupt as pulsed or permanently active
     pub fn start_second_timer(
         &mut self,
@@ -429,7 +412,7 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         self.write_reg(PCF8523_CONTROL_1, control_1)
     }
 
-    /// Starts Timer A.
+    /// Starts Timer A and enables the interrupt.
     /// - `timer` TimerA configuration
     pub fn start_timer_a(&mut self, timer: &TimerA) -> Result<(), Pcf8523Error<I2C::Error>> {
         if timer.countdown == 0 {
@@ -476,6 +459,13 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         self.write_reg(PCF8523_CONTROL_1, reg_val)
     }
 
+    /// Stops the second timer.
+    pub fn stop_second_timer(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut control_1 = self.read_reg(PCF8523_CONTROL_1)?;
+        set_bits(&mut control_1, 0, 2, 0b100); // SIE
+        self.write_reg(PCF8523_CONTROL_1, control_1)
+    }
+
     /// Stops Timer A.
     pub fn stop_timer_a(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut tmr_clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
@@ -518,22 +508,7 @@ impl<I2C: I2c, V: Variant + Int2Pin> Pcf8523<I2C, V> {
         self.write_reg(PCF8523_CONTROL_2, reg_val)
     }
 
-    /// Disables the Timer B interrupt.
-    pub fn disable_timer_b_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
-        set_bits(&mut reg_val, 0, 0, 0b1);
-        self.write_reg(PCF8523_CONTROL_2, reg_val)
-    }
-
-    /// Enables the Timer B interrupt.
-    pub fn enable_timer_b_interrupt(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
-        self.set_clkout(ClkOut::Frequency0Hz)?;
-        let mut reg_val = self.read_reg(PCF8523_CONTROL_2)?;
-        set_bits(&mut reg_val, 1, 0, 0b1);
-        self.write_reg(PCF8523_CONTROL_2, reg_val)
-    }
-
-    /// Starts Timer B, which only supports countdown timer mode.
+    /// Starts Timer B and enables the interrupt.
     /// - `timer` TimerB configuration
     pub fn start_timer_b(&mut self, timer: &TimerB) -> Result<(), Pcf8523Error<I2C::Error>> {
         self.stop_timer_b()?;
