@@ -262,23 +262,6 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         self.enable_alarm_interrupt()
     }
 
-    /// Enables the second interrupt.
-    /// - `pulsed` configures the interrupt as pulsed or permanently active
-    pub fn enable_second_timer_interrupt(
-        &mut self,
-        interrupt_mode: TimerInterruptMode,
-    ) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let mut control_1 = self.read_reg(PCF8523_CONTROL_1)?;
-        set_bits(&mut control_1, 1, 2, 0b100);
-        self.write_reg(PCF8523_CONTROL_1, control_1)?;
-
-        let mut clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
-        set_bits(&mut clkout_ctrl, interrupt_mode as u8, 7, 0b1000_0000);
-        // disable CLKOUT
-        set_bits(&mut clkout_ctrl, 0b111, 3, 0b11_1000);
-        self.write_reg(PCF8523_TMR_CLKOUT_CTRL, clkout_ctrl)
-    }
-
     /// Enables the weekday alarm.
     /// - `weekday` 0..6 (inclusive)
     pub fn enable_weekday_alarm(&mut self, weekday: u8) -> Result<(), Pcf8523Error<I2C::Error>> {
@@ -425,6 +408,25 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         let mut reg_val = self.read_reg(PCF8523_CONTROL_1)?;
         set_bits(&mut reg_val, 0, 5, 0b10_0000);
         self.write_reg(PCF8523_CONTROL_1, reg_val)
+    }
+
+    /// Starts the second timer.
+    /// - `interrupt_mode` configures the interrupt as pulsed or permanently active
+    pub fn start_second_timer(
+        &mut self,
+        interrupt_mode: TimerInterruptMode,
+    ) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
+        // set interrupt mode
+        set_bits(&mut clkout_ctrl, interrupt_mode as u8, 7, 0b1000_0000);
+        // disable CLKOUT
+        set_bits(&mut clkout_ctrl, 0b111, 3, 0b11_1000);
+        self.write_reg(PCF8523_TMR_CLKOUT_CTRL, clkout_ctrl)?;
+
+        // enable interrupt
+        let mut control_1 = self.read_reg(PCF8523_CONTROL_1)?;
+        set_bits(&mut control_1, 1, 2, 0b100); // SIE
+        self.write_reg(PCF8523_CONTROL_1, control_1)
     }
 
     /// Starts Timer A.

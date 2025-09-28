@@ -89,7 +89,7 @@ fn main() -> ! {
     );
 
     let mut pcf8523: Rtc = Pcf8523::new(i2c_bus, Pcf8523T {}).unwrap();
-    pcf8523.enable_second_timer_interrupt(true).unwrap();
+    pcf8523.start_second_timer(true).unwrap();
     // enable_second_timer_interrupt(...) will disable clkout which briefly pulls CLKOUT/INT1 low.
     // this triggers the interrupt handler, so set the LED high after enabling the alarm.
     led_pin.set_high().unwrap();

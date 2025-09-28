@@ -439,38 +439,6 @@ fn enable_day_alarm_ok() {
 }
 
 #[test]
-fn enable_second_timer_interrupt_pulsed_ok() {
-    let expectations = [
-        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
-        i2c_reg_read(PCF8523_CONTROL_1, 0b0010_0011),
-        i2c_reg_write(PCF8523_CONTROL_1, 0b0010_0111),
-        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0010_0011),
-        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b1011_1011),
-    ];
-    let mut i2c = I2cMock::new(&expectations);
-    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
-    driver.enable_second_timer_interrupt(Pulsed).unwrap();
-    i2c.done();
-}
-
-#[test]
-fn enable_second_timer_interrupt_permanent_ok() {
-    let expectations = [
-        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
-        i2c_reg_read(PCF8523_CONTROL_1, 0b0010_0011),
-        i2c_reg_write(PCF8523_CONTROL_1, 0b0010_0111),
-        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b1010_0011),
-        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b0011_1011),
-    ];
-    let mut i2c = I2cMock::new(&expectations);
-    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
-    driver
-        .enable_second_timer_interrupt(PermanentlyActive)
-        .unwrap();
-    i2c.done();
-}
-
-#[test]
 fn enable_timer_b_interrupt_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
@@ -820,6 +788,35 @@ fn start_ok() {
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
     driver.start().unwrap();
+    i2c.done();
+}
+#[test]
+fn start_second_timer_pulsed_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0010_0011),
+        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b1011_1011),
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0010_0011),
+        i2c_reg_write(PCF8523_CONTROL_1, 0b0010_0111),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    driver.start_second_timer(Pulsed).unwrap();
+    i2c.done();
+}
+
+#[test]
+fn start_second_timer_permanent_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b1010_0011),
+        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b0011_1011),
+        i2c_reg_read(PCF8523_CONTROL_1, 0b0010_0011),
+        i2c_reg_write(PCF8523_CONTROL_1, 0b0010_0111),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    driver.start_second_timer(PermanentlyActive).unwrap();
     i2c.done();
 }
 
