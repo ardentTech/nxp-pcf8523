@@ -459,6 +459,13 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         self.write_reg(PCF8523_CONTROL_1, reg_val)
     }
 
+    /// Stops CLKOUT.
+    pub fn stop_clkout(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
+        let mut reg_val = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
+        set_bits(&mut reg_val, 0b111, 3, 0b11_1000); // COF
+        self.write_reg(PCF8523_TMR_CLKOUT_CTRL, reg_val)
+    }
+
     /// Stops the second timer.
     pub fn stop_second_timer(&mut self) -> Result<(), Pcf8523Error<I2C::Error>> {
         let mut control_1 = self.read_reg(PCF8523_CONTROL_1)?;

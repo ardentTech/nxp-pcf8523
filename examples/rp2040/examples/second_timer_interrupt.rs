@@ -13,6 +13,7 @@ use critical_section::Mutex;
 use embedded_hal::digital::{OutputPin, StatefulOutputPin};
 use nxp_pcf8523::Pcf8523;
 use nxp_pcf8523::typedefs::Pcf8523T;
+use nxp_pcf8523::typedefs::TimerInterruptMode::Pulsed;
 use panic_halt as _;
 use rp2040_hal::clocks::init_clocks_and_plls;
 use rp2040_hal::fugit::RateExtU32;
@@ -23,7 +24,6 @@ use rp2040_hal::gpio::{
 };
 use rp2040_hal::pac::{I2C1, interrupt};
 use rp2040_hal::{I2C, Sio, Watchdog, pac};
-use nxp_pcf8523::typedefs::TimerInterruptMode::Pulsed;
 
 /// The linker will place this boot block at the start of our program image. We
 /// need this to help the ROM bootloader get our code up and running.

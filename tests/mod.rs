@@ -875,6 +875,19 @@ fn stop_ok() {
 }
 
 #[test]
+fn stop_clkout_ok() {
+    let expectations = [
+        I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0),
+        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b11_1000),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut driver = Pcf8523::new(&mut i2c, Pcf8523T {}).unwrap();
+    driver.stop_clkout().unwrap();
+    i2c.done();
+}
+
+#[test]
 fn stop_second_timer_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
