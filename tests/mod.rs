@@ -889,22 +889,20 @@ fn start_timer_a_watchdog_ok() {
 fn start_timer_b_ok() {
     let expectations = [
         I2cTransaction::read(PCF8523_I2C_ADDRESS, [0b0].to_vec()),
-        // disable timer
+        // stop timer
         i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b1),
         i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b0),
-        // set frequency
+        // set frequency, low pulse width
         i2c_reg_read(PCF8523_TMR_B_FREQ_CTRL, 0b0),
         i2c_reg_write(PCF8523_TMR_B_FREQ_CTRL, 0b11_0010),
-        // disable clkout
-        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0),
-        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b11_1000),
         // enable interrupt
         i2c_reg_read(PCF8523_CONTROL_2, 0b0),
         i2c_reg_write(PCF8523_CONTROL_2, 0b1),
+        // disable clkout, set interrupt mode and enable timer
+        i2c_reg_read(PCF8523_TMR_CLKOUT_CTRL, 0b0),
+        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b111_1001),
         // set countdown val
         i2c_reg_write(PCF8523_TMR_B_REG, 0b111),
-        // enable timer
-        i2c_reg_write(PCF8523_TMR_CLKOUT_CTRL, 0b100_0001),
     ];
     let mut i2c = I2cMock::new(&expectations);
     let mut driver = Pcf8523::new(&mut i2c, Pcf8523U {}).unwrap();

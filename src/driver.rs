@@ -536,15 +536,9 @@ impl<I2C: I2c, V: Variant + Int2Pin> Pcf8523<I2C, V> {
     /// Starts Timer B, which only supports countdown timer mode.
     /// - `timer` TimerB configuration
     pub fn start_timer_b(&mut self, timer: &TimerB) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let mut tmr_clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
-        // disable timer (if enabled)
-        if get_bits(tmr_clkout_ctrl, 1, 0) == 1 {
-            set_bits(&mut tmr_clkout_ctrl, 0, 0, 0b1);
-            self.write_reg(PCF8523_TMR_CLKOUT_CTRL, tmr_clkout_ctrl)?;
-        }
+        self.stop_timer_b()?;
 
         let mut tmr_b_freq_ctrl = self.read_reg(PCF8523_TMR_B_FREQ_CTRL)?;
-
         // set timer frequency
         set_bits(&mut tmr_b_freq_ctrl, timer.source_clock as u8, 0, 0b111);
 
@@ -557,8 +551,14 @@ impl<I2C: I2c, V: Variant + Int2Pin> Pcf8523<I2C, V> {
         }
         self.write_reg(PCF8523_TMR_B_FREQ_CTRL, tmr_b_freq_ctrl)?;
 
-        self.enable_timer_b_interrupt()?;
+        let mut control_2 = self.read_reg(PCF8523_CONTROL_2)?;
+        // enable interrupt
+        set_bits(&mut control_2, 1, 0, 0b1);
+        self.write_reg(PCF8523_CONTROL_2, control_2)?;
 
+        let mut tmr_clkout_ctrl = self.read_reg(PCF8523_TMR_CLKOUT_CTRL)?;
+        // disable CLKOUT
+        set_bits(&mut tmr_clkout_ctrl, Frequency0Hz as u8, 3, 0b11_1000);
         // set interrupt mode
         set_bits(
             &mut tmr_clkout_ctrl,
@@ -566,12 +566,13 @@ impl<I2C: I2c, V: Variant + Int2Pin> Pcf8523<I2C, V> {
             6,
             0b100_0000,
         );
-        // set countdown val
-        self.write_reg(PCF8523_TMR_B_REG, timer.countdown)?;
 
         // enable timer
         set_bits(&mut tmr_clkout_ctrl, 1, 0, 0b1);
-        self.write_reg(PCF8523_TMR_CLKOUT_CTRL, tmr_clkout_ctrl)
+        self.write_reg(PCF8523_TMR_CLKOUT_CTRL, tmr_clkout_ctrl)?;
+
+        // start the timer by setting a countdown value
+        self.write_reg(PCF8523_TMR_B_REG, timer.countdown)
     }
 
     /// Stops Timer B.
