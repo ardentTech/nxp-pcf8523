@@ -1,6 +1,6 @@
-//! Demonstrates the second timer interrupt in pulse mode by toggling the LED state on a 1Hz frequency.
+//! Demonstrates the timer A interrupt in pulse mode by toggling the LED state every four seconds.
 //!
-//! See datasheet section 8.9.4
+//! See datasheet section 8.9.2
 
 #![no_std]
 #![no_main]
@@ -12,8 +12,9 @@ use cortex_m::asm::wfi;
 use critical_section::Mutex;
 use embedded_hal::digital::{OutputPin, StatefulOutputPin};
 use nxp_pcf8523::Pcf8523;
-use nxp_pcf8523::typedefs::Pcf8523T;
 use nxp_pcf8523::typedefs::TimerInterruptMode::Pulsed;
+use nxp_pcf8523::typedefs::TimerMode::Countdown;
+use nxp_pcf8523::typedefs::{Pcf8523T, TimerA, TimerSourceClock};
 use panic_halt as _;
 use rp2040_hal::clocks::init_clocks_and_plls;
 use rp2040_hal::fugit::RateExtU32;
@@ -90,8 +91,10 @@ fn main() -> ! {
     );
 
     let mut pcf8523: Rtc = Pcf8523::new(i2c_bus, Pcf8523T {}).unwrap();
-    pcf8523.start_second_timer(Pulsed).unwrap();
-    // start_second_timer(...) will disable CLKOUT and briefly pulls CLKOUT/INT1 low.
+    // 256 counter / 64 Hz src clk = 4 sec period
+    let cfg = TimerA::new(255, Pulsed, Countdown, TimerSourceClock::Frequency64Hz);
+    pcf8523.start_timer_a(&cfg).unwrap();
+    // start_timer_a(...) will disable CLKOUT and briefly pulls CLKOUT/INT1 low.
     // this triggers the interrupt handler, so set the LED high after enabling the alarm.
     led_pin.set_high().unwrap();
 
