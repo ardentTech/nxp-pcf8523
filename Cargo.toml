@@ -1,6 +1,6 @@
 [package]
 name = "nxp-pcf8523"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
 authors = ["Jonathan D. Baker <jonathan@ardent.tech>"]
 description = "A no-std driver for the NXP PCF8523 RTC and calendar module."
