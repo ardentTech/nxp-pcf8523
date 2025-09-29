@@ -13,13 +13,13 @@ use nxp_pcf8523::datetime::Pcf8523DateTime;
 
 // configure I2C bus at 100, 400 or 1_000 kHz...
 
-let mut pcf8523 = Pcf8523::new(i2c_bus, Pcf8523T {}) ?;
+let mut pcf8523 = Pcf8523::new(i2c_bus, Pcf8523T {})?;
 // 1:41:13PM on 08.21.2025
-let dt = Pcf8523DateTime::new(13, 41, 13, 8, 21, 25) ?;
-pcf8523.set_datetime(dt) ?;
-pcf8523.set_power_management(PowerManagement::SwitchOverStandardOnLowDetectionOn) ?;
-pcf8523.start() ?;
-let now = pcf8523.now() ?.timestamp();
+let dt = Pcf8523DateTime::new(13, 41, 13, 8, 21, 25)?;
+pcf8523.set_datetime(dt)?;
+pcf8523.set_power_management(PowerManagement::SwitchOverStandardOnLowDetectionOn)?;
+pcf8523.start()?;
+let now = pcf8523.now()?.timestamp();
 ```
 
 ### Examples
@@ -36,7 +36,7 @@ From the root dir: `$ cargo test`
 
 ### Resources
 
-* [Datasheet](www.nxp.com/docs/en/data-sheet/PCF8523.pdf)
+* [Datasheet](https://www.nxp.com/docs/en/data-sheet/PCF8523.pdf)
 
 ### Acknowledgements
 
