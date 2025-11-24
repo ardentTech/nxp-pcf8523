@@ -14,6 +14,19 @@ pub struct Pcf8523DateTime {
     pub year: u8,
 }
 
+impl Default for Pcf8523DateTime {
+    fn default() -> Self {
+        Self {
+            second: 0,
+            minute: 0,
+            hour: 0,
+            day: 1,
+            month: 1,
+            year: 0,
+        }
+    }
+}
+
 impl Pcf8523DateTime {
     /// Constructs a new datetime instance.
     /// - `hour` 0..23 (inclusive)
