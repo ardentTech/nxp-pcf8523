@@ -6,8 +6,6 @@
 #![no_std]
 #![no_main]
 
-extern crate nxp_pcf8523;
-
 use embedded_hal::delay::DelayNs;
 use embedded_hal::digital::StatefulOutputPin;
 use nxp_pcf8523::Pcf8523;
@@ -53,7 +51,7 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    let mut led_pin: Pin<_, FunctionSioOutput, PullDown> = pins.gpio13.reconfigure();
+    let mut led: Pin<_, FunctionSioOutput, PullDown> = pins.gpio13.reconfigure();
 
     // I2C
     let sda: Pin<_, FunctionI2C, PullUp> = pins.gpio2.reconfigure();
@@ -74,7 +72,7 @@ fn main() -> ! {
 
     loop {
         let _ = pcf8523.now().unwrap().timestamp();
-        led_pin.toggle().unwrap();
+        led.toggle().unwrap();
         timer.delay_ms(2_000);
     }
 }
