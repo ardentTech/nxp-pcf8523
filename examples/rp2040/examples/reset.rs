@@ -7,8 +7,6 @@
 #![no_std]
 #![no_main]
 
-extern crate nxp_pcf8523;
-
 use embedded_hal::delay::DelayNs;
 use embedded_hal::digital::StatefulOutputPin;
 use nxp_pcf8523::Pcf8523;

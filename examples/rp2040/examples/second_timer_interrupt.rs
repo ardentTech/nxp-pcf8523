@@ -5,8 +5,6 @@
 #![no_std]
 #![no_main]
 
-extern crate nxp_pcf8523;
-
 use core::cell::RefCell;
 use cortex_m::asm::wfi;
 use critical_section::Mutex;
@@ -73,7 +71,7 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    let mut led_pin: LedPin = pins.gpio13.reconfigure();
+    let mut led: LedPin = pins.gpio13.reconfigure();
     let int1_pin: Int1Pin = pins.gpio11.reconfigure();
     int1_pin.set_interrupt_enabled(EdgeLow, true);
 
@@ -91,14 +89,14 @@ fn main() -> ! {
 
     let mut pcf8523: Rtc = Pcf8523::new(i2c_bus, Pcf8523T {}).unwrap();
     pcf8523.start_second_timer(Pulsed).unwrap();
-    // start_second_timer(...) will disable CLKOUT and briefly pulls CLKOUT/INT1 low.
+    // start_second_timer(...) will disable CLKOUT and briefly pull CLKOUT/INT1 low.
     // this triggers the interrupt handler, so set the LED high after enabling the alarm.
-    led_pin.set_high().unwrap();
+    led.set_high().unwrap();
 
     // Give away our pins by moving them into the `GLOBAL_PINS` variable.
     // We won't need to access them in the main thread again
     critical_section::with(|cs| {
-        GLOBAL_PINS.borrow(cs).replace(Some((int1_pin, led_pin)));
+        GLOBAL_PINS.borrow(cs).replace(Some((int1_pin, led)));
     });
 
     // Unmask the IO_BANK0 IRQ so that the NVIC interrupt controller

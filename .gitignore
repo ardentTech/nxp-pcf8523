@@ -1,3 +1,4 @@
 /target
 .idea
 examples/rp2040/target
+examples/rp2040_async/target

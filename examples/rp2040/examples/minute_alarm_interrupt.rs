@@ -6,8 +6,6 @@
 #![no_std]
 #![no_main]
 
-extern crate nxp_pcf8523;
-
 use core::cell::RefCell;
 use cortex_m::asm::wfi;
 use critical_section::Mutex;
@@ -74,7 +72,7 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    let mut led_pin: LedPin = pins.gpio13.reconfigure();
+    let mut led: LedPin = pins.gpio13.reconfigure();
     let int1_pin: Int1Pin = pins.gpio11.reconfigure();
     int1_pin.set_interrupt_enabled(EdgeLow, true);
 
@@ -97,14 +95,12 @@ fn main() -> ! {
     pcf8523.enable_minute_alarm(1).unwrap();
     // enable_minute_alarm(...) will disable clkout which briefly pulls CLKOUT/INT1 low. to see the
     // LED turn off after 1m, set it high after enabling the alarm.
-    led_pin.set_high().unwrap();
+    led.set_high().unwrap();
 
     // Give away our pins by moving them into the `GLOBAL_PINS` variable.
     // We won't need to access them in the main thread again
     critical_section::with(|cs| {
-        GLOBALS
-            .borrow(cs)
-            .replace(Some((int1_pin, led_pin, pcf8523)));
+        GLOBALS.borrow(cs).replace(Some((int1_pin, led, pcf8523)));
     });
 
     // Unmask the IO_BANK0 IRQ so that the NVIC interrupt controller
@@ -126,14 +122,13 @@ fn IO_IRQ_BANK0() {
     // The `#[interrupt]` attribute covertly converts this to `&'static mut Option<LedAndButton>`
     static mut INT1_LED_RTC: Option<Int1LedRtc> = None;
 
-    // This is one-time lazy initialisation. We steal the variables given to us
+    // This is one-time lazy initialization. We steal the variables given to us
     // via `GLOBAL_PINS`.
     if INT1_LED_RTC.is_none() {
         critical_section::with(|cs| {
             *INT1_LED_RTC = GLOBALS.borrow(cs).take();
         });
     }
-
     // Need to check if our Option<LedAndButtonPins> contains our pins
     if let Some(globals) = INT1_LED_RTC {
         // borrow led and button by *destructuring* the tuple
