@@ -42,6 +42,7 @@ async fn main(_spawner: Spawner) {
 
     loop {
         int1_pin.wait_for_falling_edge().await;
+        clear_timer_a_interrupt(&cfg).await;
         led.toggle();
     }
 }
