@@ -4,9 +4,11 @@ pub(crate) const fn decode_bcd(a: u8) -> u8 {
 }
 
 // Converts a binary value to BCD format
-pub(crate) const fn encode_bcd(a: u8) -> u8 {
-    assert!(a < 100);
-    (a % 10) | (a / 10) << 4
+pub(crate) const fn encode_bcd(a: u8) -> Result<u8, ()> {
+    if a >= 100 {
+        return Err(());
+    }
+    Ok((a % 10) | (a / 10) << 4)
 }
 
 // Get a subset of bits from a byte
@@ -36,17 +38,16 @@ mod tests {
 
     #[test]
     fn encode_bcd_floor() {
-        assert_eq!(encode_bcd(0u8), 0b0);
+        assert_eq!(encode_bcd(0u8).unwrap(), 0b0);
     }
 
     #[test]
     fn encode_bcd_ceiling() {
-        assert_eq!(encode_bcd(99u8), 0b1001_1001);
+        assert_eq!(encode_bcd(99u8).unwrap(), 0b1001_1001);
     }
 
     #[test]
-    #[should_panic]
     fn encode_bcd_out_of_bounds() {
-        encode_bcd(100u8);
+        assert!(encode_bcd(100u8).is_err());
     }
 }

@@ -67,15 +67,15 @@ impl Pcf8523DateTime {
         }
     }
 
-    pub(crate) fn encode_bcd(&self) -> Self {
-        Self {
-            second: encode_bcd(self.second),
-            minute: encode_bcd(self.minute),
-            hour: encode_bcd(self.hour),
-            day: encode_bcd(self.day),
-            month: encode_bcd(self.month),
-            year: encode_bcd(self.year),
-        }
+    pub(crate) fn encode_bcd(&self) -> Result<Self, ()> {
+        Ok(Self {
+            second: encode_bcd(self.second)?,
+            minute: encode_bcd(self.minute)?,
+            hour: encode_bcd(self.hour)?,
+            day: encode_bcd(self.day)?,
+            month: encode_bcd(self.month)?,
+            year: encode_bcd(self.year)?,
+        })
     }
 
     /// Generates the Unix timestamp representation of the datetime.

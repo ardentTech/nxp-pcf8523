@@ -188,7 +188,7 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
                 PowerManagement::SwitchOverStandardOnLowDetectionOn
                 | PowerManagement::SwitchOverDirectOnLowDetectionOn
                 | PowerManagement::SwitchOverOffLowDetectionOn => {
-                    self.set_clkout(ClkOut::Frequency0Hz).await?;
+                    self.set_clkout(Frequency0Hz).await?;
                     set_bits(&mut reg_val, 1, 0, 0b1);
                     self.write_reg(PCF8523_CONTROL_3, reg_val).await
                 }
@@ -213,7 +213,7 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
                 | PowerManagement::SwitchOverDirectOnLowDetectionOn
                 | PowerManagement::SwitchOverStandardOnLowDetectionOff
                 | PowerManagement::SwitchOverDirectOnLowDetectionOff => {
-                    self.set_clkout(ClkOut::Frequency0Hz).await?;
+                    self.set_clkout(Frequency0Hz).await?;
                     set_bits(&mut reg_val, 1, 1, 0b10);
                     self.write_reg(PCF8523_CONTROL_3, reg_val).await
                 }
@@ -231,7 +231,7 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         if self.read_reg(PCF8523_OFFSET).await? != 0 {
             let mut reg_val = self.read_reg(PCF8523_CONTROL_1).await?;
             set_bits(&mut reg_val, 1, 0, 0b1);
-            self.set_clkout(ClkOut::Frequency0Hz).await?;
+            self.set_clkout(Frequency0Hz).await?;
             self.write_reg(PCF8523_CONTROL_1, reg_val).await
         } else {
             Err(InvalidState)
@@ -245,9 +245,12 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         if day == 0 || day > 31 {
             return Err(InvalidArgument);
         }
-        self.set_clkout(ClkOut::Frequency0Hz).await?;
-        self.write_reg(PCF8523_DAY_ALARM, (0 << 7) | encode_bcd(day))
-            .await?;
+        self.set_clkout(Frequency0Hz).await?;
+        self.write_reg(
+            PCF8523_DAY_ALARM,
+            (0 << 7) | encode_bcd(day).map_err(|_| InvalidArgument)?,
+        )
+        .await?;
         self.enable_alarm_interrupt().await
     }
 
@@ -258,9 +261,12 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         if hour > 23 {
             return Err(InvalidArgument);
         }
-        self.set_clkout(ClkOut::Frequency0Hz).await?;
-        self.write_reg(PCF8523_HOUR_ALARM, (0 << 7) | encode_bcd(hour))
-            .await?;
+        self.set_clkout(Frequency0Hz).await?;
+        self.write_reg(
+            PCF8523_HOUR_ALARM,
+            (0 << 7) | encode_bcd(hour).map_err(|_| InvalidArgument)?,
+        )
+        .await?;
         self.enable_alarm_interrupt().await
     }
 
@@ -274,9 +280,12 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         if minute > 59 {
             return Err(InvalidArgument);
         }
-        self.set_clkout(ClkOut::Frequency0Hz).await?;
-        self.write_reg(PCF8523_MINUTE_ALARM, (0 << 7) | encode_bcd(minute))
-            .await?;
+        self.set_clkout(Frequency0Hz).await?;
+        self.write_reg(
+            PCF8523_MINUTE_ALARM,
+            (0 << 7) | encode_bcd(minute).map_err(|_| InvalidArgument)?,
+        )
+        .await?;
         self.enable_alarm_interrupt().await
     }
 
@@ -290,7 +299,7 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         if weekday > 6 {
             return Err(InvalidArgument);
         }
-        self.set_clkout(ClkOut::Frequency0Hz).await?;
+        self.set_clkout(Frequency0Hz).await?;
         self.write_reg(PCF8523_WEEKDAY_ALARM, (0 << 7) | weekday)
             .await?;
         self.enable_alarm_interrupt().await
@@ -396,7 +405,7 @@ impl<I2C: I2c, V: Variant> Pcf8523<I2C, V> {
         &mut self,
         datetime: Pcf8523DateTime,
     ) -> Result<(), Pcf8523Error<I2C::Error>> {
-        let dt = datetime.encode_bcd();
+        let dt = datetime.encode_bcd().map_err(|_| InvalidArgument)?;
         self.i2c
             .transaction(
                 PCF8523_I2C_ADDRESS,
